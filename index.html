@@ -816,10 +816,12 @@ function getYears(){
 }
 function saveYears(ys){ localStorage.setItem(yearsKey(), JSON.stringify(ys)); }
 
+function isOwner(){return fbUser&&fbUser.email==='rodrigorivelino656@gmail.com';}
+
 function loadData(){
   const raw = localStorage.getItem(sKey(ano));
   if(raw) return JSON.parse(raw);
-  if(ano === 2026) return JSON.parse(JSON.stringify(DADOS_2026));
+  if(ano === 2026 && isOwner()) return JSON.parse(JSON.stringify(DADOS_2026));
   return createEmptyYear();
 }
 
