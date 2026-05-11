@@ -1883,9 +1883,18 @@ function toggleDark(){
 let fbApp=null, fbAuth=null, fbDb=null, fbUser=null;
 let syncTimeout=null;
 
+const DEFAULT_FB_CONFIG={
+  apiKey:"AIzaSyDK31rLTwu5xQrnt0D83WnOtFiSwT4mBSE",
+  authDomain:"pierini-assistent-26797.firebaseapp.com",
+  projectId:"pierini-assistent-26797",
+  storageBucket:"pierini-assistent-26797.firebasestorage.app",
+  messagingSenderId:"456162974150",
+  appId:"1:456162974150:web:14f56ff14672a0c9c5bac7"
+};
+
 function getFbConfig(){
-  try{const raw=localStorage.getItem('fbConfig');return raw?JSON.parse(raw):null;}
-  catch{return null;}
+  try{const raw=localStorage.getItem('fbConfig');return raw?JSON.parse(raw):DEFAULT_FB_CONFIG;}
+  catch{return DEFAULT_FB_CONFIG;}
 }
 
 function saveFbConfig(){
