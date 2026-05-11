@@ -174,6 +174,22 @@ body.dark .sidebar-year-wrap .year-pick-btn:hover{background:#1b5e20}
 /* Parcela info box */
 #parcela-info{background:var(--green-l);border-radius:7px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:var(--green-d)}
 body.dark #parcela-info{background:#1a3a1a;color:#81c784}
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+#login-screen.hidden{display:none}
+.login-box{background:#fff;border-radius:20px;padding:48px 40px;box-shadow:0 8px 40px rgba(0,0,0,.12);text-align:center;max-width:380px;width:90%}
+.login-logo{font-size:52px;margin-bottom:12px}
+.login-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--text-l);margin-bottom:32px}
+.login-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;background:#fff;font-size:15px;font-weight:600;cursor:pointer;color:var(--text);transition:all .15s}
+.login-btn:hover{border-color:#4285f4;background:#f0f6ff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(66,133,244,.15)}
+.login-btn img{width:22px;height:22px}
+.login-status{font-size:12px;color:var(--text-l);margin-top:16px;min-height:18px}
+body.dark #login-screen{background:#121212}
+body.dark .login-box{background:#1e1e1e;border:1px solid #333}
+body.dark .login-title{color:#e0e0e0}
+body.dark .login-btn{background:#252525;border-color:#444;color:#e0e0e0}
+body.dark .login-btn:hover{background:#1a2e4a;border-color:#4285f4}
 /* ── APP LAYOUT ── */
 .app-layout{display:flex;min-height:100vh}
 .sidebar{width:252px;background:#fff;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;box-shadow:2px 0 14px rgba(0,0,0,.09);display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.4,0,.2,1)}
@@ -341,6 +357,20 @@ body.dark .ys-add{border-color:#333}
 </style>
 </head>
 <body>
+
+<!-- TELA DE LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📊</div>
+    <div class="login-title">Controle de Gastos</div>
+    <div class="login-sub">Entre com sua conta Google para acessar seus dados</div>
+    <button class="login-btn" onclick="handleGoogleAuth()">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E">
+      Entrar com Google
+    </button>
+    <div class="login-status" id="login-status">Carregando...</div>
+  </div>
+</div>
 
 <div class="app-layout">
 
@@ -536,7 +566,7 @@ body.dark .ys-add{border-color:#333}
     </div>
     <p style="font-size:12px;color:var(--text-l);margin-top:10px">O arquivo JSON pode ser importado em qualquer dispositivo para continuar usando seus dados.</p>
   </div>
-  <div class="section">
+  <div class="section" id="fb-config-section" style="display:none">
     <div class="sec-title" style="margin-bottom:14px">🔥 Google Sync (Firebase)</div>
     <div style="font-size:13px;color:var(--text-l);margin-bottom:12px;line-height:1.6">
       Para sincronizar com sua conta Google, cole aqui o JSON de configuração do seu projeto Firebase.<br>
@@ -551,6 +581,12 @@ body.dark .ys-add{border-color:#333}
       </div>
     </div>
     <div id="fbConfigStatus" style="font-size:12px;margin-top:8px;color:var(--text-l)"></div>
+  </div>
+  <div class="section">
+    <div class="sec-title" style="margin-bottom:10px">🗑️ Limpar Todos os Dados</div>
+    <div style="font-size:13px;color:var(--text-l);margin-bottom:12px">Remove todos os gastos, receitas e lançamentos. A configuração do Firebase não é apagada.</div>
+    <button class="btn btn-sm" style="background:#ffebee;color:#c62828" onclick="clearAllData()">🗑️ Apagar todos os dados</button>
+    <div id="clearDataStatus" style="font-size:12px;margin-top:8px;color:var(--text-l)"></div>
   </div>
   <div class="section">
     <div class="sec-title" style="margin-bottom:10px">📅 Anos Cadastrados</div>
@@ -1909,6 +1945,23 @@ function saveFbConfig(){
   } catch{toast('JSON inválido — verifique a formatação');}
 }
 
+function clearAllData(){
+  if(!confirm('Tem certeza? Todos os dados serão apagados permanentemente. A configuração do Firebase não será afetada.')) return;
+  const fbConfig=localStorage.getItem('fbConfig');
+  const theme=localStorage.getItem('theme');
+  localStorage.clear();
+  if(fbConfig) localStorage.setItem('fbConfig',fbConfig);
+  if(theme) localStorage.setItem('theme',theme);
+  const ys=[2026];
+  saveYears(ys);
+  localStorage.setItem(sKey(2026),JSON.stringify(createEmptyYear()));
+  e('clearDataStatus').innerHTML='<span style="color:#2e7d32">✅ Dados apagados com sucesso.</span>';
+  toast('Dados apagados!');
+  renderYearSel();
+  showPage('dashboard');
+  if(fbUser) syncToCloud();
+}
+
 function clearFbConfig(){
   localStorage.removeItem('fbConfig');
   e('fbConfigStatus').innerHTML='<span style="color:#9e9e9e">Configuração removida.</span>';
@@ -1932,7 +1985,17 @@ async function loadFirebase(){
     fbAuth.onAuthStateChanged(user=>{
       fbUser=user;
       updateSyncUI();
-      if(user) syncFromCloud();
+      if(user){
+        e('login-screen').classList.add('hidden');
+        const sec=e('fb-config-section');
+        if(sec) sec.style.display=user.email==='rodrigorivelino656@gmail.com'?'':'none';
+        syncFromCloud();
+      } else {
+        e('login-screen').classList.remove('hidden');
+        e('login-status').textContent='Faça login para acessar seus dados.';
+        const sec=e('fb-config-section');
+        if(sec) sec.style.display='none';
+      }
     });
   } catch(err){
     console.warn('Firebase init error:',err);
@@ -1950,20 +2013,29 @@ function loadScript(src){
 }
 
 async function handleGoogleAuth(){
-  if(!fbAuth){toast('Configure o Firebase primeiro nas Configurações');showPage('config');return;}
+  if(!fbAuth){
+    e('login-status').textContent='Aguarde, carregando Firebase...';
+    setTimeout(handleGoogleAuth,1500);
+    return;
+  }
   if(fbUser){
     await fbAuth.signOut();
-    fbUser=null;updateSyncUI();toast('Desconectado do Google');
+    fbUser=null;
+    updateSyncUI();
+    toast('Desconectado do Google');
+    e('login-screen').classList.remove('hidden');
+    e('login-status').textContent='Você saiu da conta.';
     return;
   }
   try{
+    e('login-status').textContent='Abrindo login do Google...';
     const provider=new firebase.auth.GoogleAuthProvider();
     await fbAuth.signInWithPopup(provider);
     toast('✅ Conectado com Google!');
   } catch(err){
-    if(err.code==='auth/popup-blocked') toast('⚠️ Popup bloqueado. Permita popups para este site.');
-    else if(err.code==='auth/operation-not-allowed') toast('⚠️ Autenticação Google não habilitada no Firebase Console.');
-    else toast('Erro ao conectar: '+err.message);
+    if(err.code==='auth/popup-blocked') e('login-status').textContent='⚠️ Popup bloqueado — permita popups para este site.';
+    else if(err.code==='auth/operation-not-allowed') e('login-status').textContent='⚠️ Autenticação Google não habilitada no Firebase.';
+    else e('login-status').textContent='Erro: '+err.message;
   }
 }
 
@@ -2084,7 +2156,12 @@ function init(){
 
   renderYearSel();
   showPage('dashboard');
-  loadFirebase().then(()=>updateSyncUI());
+  const ls=e('login-status');
+  if(ls) ls.textContent='Verificando login...';
+  loadFirebase().then(()=>{
+    updateSyncUI();
+    if(!fbAuth&&ls) ls.textContent='Erro ao carregar Firebase. Recarregue a página.';
+  });
 }
 
 // Keyboard shortcut: Esc to close modal/picker
