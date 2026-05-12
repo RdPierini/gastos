@@ -462,9 +462,10 @@ body.dark .ys-add{border-color:#333}
 <div id="page-dashboard" class="page">
   <div class="cards" id="dash-cards"></div>
   <div class="grid2">
-    <div class="section">
+    <div class="section" style="display:flex;flex-direction:column">
       <div class="sec-title" style="margin-bottom:12px">📈 Entradas vs Saídas por Mês</div>
       <div class="chart-wrap"><canvas id="chart-anual"></canvas></div>
+      <div id="dash-anual-stats" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;flex:1"></div>
     </div>
     <div class="section">
       <div class="sec-title" style="margin-bottom:12px">🗓️ Navegação por Mês</div>
@@ -1090,6 +1091,27 @@ function renderDashboard(){
   renderChartAnual(d);
   renderChartSaldo(d);
   renderTopCats(d);
+  renderAnualStats(d);
+}
+
+function renderAnualStats(d){
+  const el=e('dash-anual-stats');
+  if(!el) return;
+  const mesesDados=MESES.map(m=>({m,c:calcMes(d,m)})).filter(x=>x.c.ent>0||x.c.saidas>0);
+  if(!mesesDados.length){el.innerHTML='';return;}
+  const melhorMes=mesesDados.reduce((a,b)=>b.c.saldo>a.c.saldo?b:a);
+  const piorMes=mesesDados.reduce((a,b)=>b.c.saldo<a.c.saldo?b:a);
+  const maiorGasto=mesesDados.reduce((a,b)=>b.c.saidas>a.c.saidas?b:a);
+  const stat=(ico,label,valor,cor)=>`
+    <div style="background:var(--bg);border-radius:10px;padding:12px;text-align:center;border-top:3px solid ${cor}">
+      <div style="font-size:20px;margin-bottom:4px">${ico}</div>
+      <div style="font-size:10px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${label}</div>
+      <div style="font-size:13px;font-weight:700;color:${cor}">${valor}</div>
+    </div>`;
+  el.innerHTML=
+    stat('🏆','Melhor Mês',melhorMes.m,melhorMes.c.saldo>=0?'#2e7d32':'#c62828')+
+    stat('⚠️','Pior Mês',piorMes.m,'#c62828')+
+    stat('💸','Mais Gastos',maiorGasto.m,'#e65100');
 }
 
 function renderChartAnual(d){
