@@ -465,6 +465,16 @@ body.dark .ys-add{border-color:#333}
       <div class="month-grid" id="month-grid"></div>
     </div>
   </div>
+  <div class="grid2">
+    <div class="section">
+      <div class="sec-title" style="margin-bottom:12px">📉 Evolução do Saldo Mensal</div>
+      <div class="chart-wrap"><canvas id="chart-saldo"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="sec-title" style="margin-bottom:12px">🏆 Top Categorias do Ano</div>
+      <div id="dash-top-cats"></div>
+    </div>
+  </div>
 </div>
 
 <!-- MÊS -->
@@ -1070,6 +1080,8 @@ function renderDashboard(){
   }).join('');
 
   renderChartAnual(d);
+  renderChartSaldo(d);
+  renderTopCats(d);
 }
 
 function renderChartAnual(d){
@@ -1093,6 +1105,62 @@ function renderChartAnual(d){
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},datalabels:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}
   });
+}
+
+function renderChartSaldo(d){
+  if(typeof Chart==='undefined') return;
+  let saldoAcum=0;
+  const labels=MESES.map(m=>m.slice(0,3));
+  const saldoData=MESES.map(m=>{const c=calcMes(d,m);saldoAcum+=c.saldo;return+saldoAcum.toFixed(2);});
+  if(charts.saldo) charts.saldo.destroy();
+  const ctx=e('chart-saldo')?.getContext('2d');
+  if(!ctx) return;
+  charts.saldo=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Saldo Acumulado',
+        data:saldoData,
+        borderColor:'#2e7d32',
+        backgroundColor:'rgba(46,125,50,0.08)',
+        borderWidth:2,
+        pointBackgroundColor:saldoData.map(v=>v>=0?'#2e7d32':'#c62828'),
+        pointRadius:4,
+        fill:true,
+        tension:0.3
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}
+  });
+}
+
+function renderTopCats(d){
+  const el=e('dash-top-cats');
+  if(!el) return;
+  const totais={};
+  MESES.forEach(m=>{
+    const mes=d.meses[m];
+    [...(mes.gastosFixos||[]),...(mes.gastosVariaveis||[])].forEach(g=>{
+      if(!totais[g.categoria]) totais[g.categoria]=0;
+      totais[g.categoria]+=g.valor;
+    });
+  });
+  const sorted=Object.entries(totais).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  if(!sorted.length){el.innerHTML='<div style="color:var(--text-l);font-size:13px;text-align:center;padding:20px">Sem dados ainda</div>';return;}
+  const max=sorted[0][1];
+  const cores=['#c62828','#e53935','#ef5350','#e57373','#ef9a9a','#ffcdd2','#ffebee'];
+  el.innerHTML=sorted.map(([cat,val],i)=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+        <span style="font-weight:500;color:var(--text)">${cat}</span>
+        <span style="font-weight:700;color:#c62828">${fmt(val)}</span>
+      </div>
+      <div style="background:#f0f0f0;border-radius:6px;height:8px;overflow:hidden">
+        <div style="height:100%;width:${(val/max*100).toFixed(1)}%;background:${cores[i]||'#ef9a9a'};border-radius:6px;transition:width .4s"></div>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ═══════════════════════════════════════════════
