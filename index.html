@@ -41,11 +41,17 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.cards{grid-template-columns:1fr}}
-.card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);text-align:center;border-top:4px solid}
-.card.green{border-top-color:var(--green)}.card.red{border-top-color:var(--red)}.card.blue{border-top-color:var(--blue)}.card.gray{border-top-color:#aaa}
-.card-label{font-size:11px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.card-value{font-size:21px;font-weight:700}
-.card.green .card-value{color:#3d7a35}.card.red .card-value{color:var(--red-d)}.card.blue .card-value{color:var(--blue-d)}.card.gray .card-value{color:#444}
+.card{border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);text-align:center;border:none;position:relative;overflow:hidden}
+.card.green{background:linear-gradient(135deg,#2e7d32,#43a047);color:#fff}
+.card.red{background:linear-gradient(135deg,#c62828,#e53935);color:#fff}
+.card.blue{background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff}
+.card.gray{background:linear-gradient(135deg,#455a64,#607d8b);color:#fff}
+.card.orange{background:linear-gradient(135deg,#e65100,#f57c00);color:#fff}
+.card.purple{background:linear-gradient(135deg,#6a1b9a,#8e24aa);color:#fff}
+.card.teal{background:linear-gradient(135deg,#00695c,#00897b);color:#fff}
+.card.indigo{background:linear-gradient(135deg,#283593,#3949ab);color:#fff}
+.card-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;opacity:.88;font-weight:600}
+.card-value{font-size:21px;font-weight:700;color:#fff}
 .grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:20px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .section{background:#fff;border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px}
@@ -104,7 +110,7 @@ tbody td{padding:7px 12px;vertical-align:middle}
 .pay-item{background:var(--gray);border-radius:8px;padding:9px 13px;display:flex;justify-content:space-between;align-items:center}
 .pay-name{font-size:13px;font-weight:600}
 .pay-val{font-size:13px;color:var(--text-l)}
-.chart-wrap{position:relative;height:260px;width:100%;overflow:hidden}
+.chart-wrap{position:relative;height:220px;width:100%;overflow:hidden}
 .progress-bar{height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;min-width:80px}
 .progress-fill{height:100%;border-radius:4px;transition:width .4s}
 .pf-ok{background:var(--green)}.pf-over{background:#43a047}.pf-under{background:var(--red)}
@@ -1056,20 +1062,22 @@ function renderDashboard(){
   e('dash-cards').innerHTML=`
     <div class="card green"><div class="card-label">💰 Total Entradas</div><div class="card-value">${fmt(s.ent)}</div></div>
     <div class="card red"><div class="card-label">💸 Total Saídas</div><div class="card-value">${fmt(s.saidas)}</div></div>
-    <div class="card red"><div class="card-label">📌 Gastos Fixos</div><div class="card-value">${fmt(s.gf)}</div></div>
-    <div class="card red"><div class="card-label">🛒 Gastos Variáveis</div><div class="card-value">${fmt(s.gv)}</div></div>
+    <div class="card orange"><div class="card-label">📌 Gastos Fixos</div><div class="card-value">${fmt(s.gf)}</div></div>
+    <div class="card purple"><div class="card-label">🛒 Gastos Variáveis</div><div class="card-value">${fmt(s.gv)}</div></div>
     <div class="card blue"><div class="card-label">🏦 Total Investido</div><div class="card-value">${fmt(s.inv)}</div></div>
-    <div class="card gray"><div class="card-label">💲 Saldo Anual</div><div class="card-value ${s.saldo>=0?'pos':'neg'}">${fmtSigned(s.saldo)}</div></div>
-    <div class="card green"><div class="card-label">📈 Taxa de Poupança</div><div class="card-value">${taxaPoupDash}</div></div>
+    <div class="card ${s.saldo>=0?'teal':'red'}"><div class="card-label">💲 Saldo Anual</div><div class="card-value">${fmtSigned(s.saldo)}</div></div>
+    <div class="card indigo"><div class="card-label">📈 Taxa de Poupança</div><div class="card-value">${taxaPoupDash}</div></div>
     <div class="card gray"><div class="card-label">📊 Média Mensal Saídas</div><div class="card-value">${fmt(mediaSaidas)}</div></div>
   `;
 
+  const mcCores=['#2e7d32','#1565c0','#6a1b9a','#c62828','#e65100','#00695c','#283593','#ad1457','#4e342e','#00838f','#558b2f','#f57f17'];
   const mg=e('month-grid');
-  mg.innerHTML=MESES.map(m=>{
+  mg.innerHTML=MESES.map((m,i)=>{
     const c=calcMes(d,m);
     const hasData=c.ent>0||c.saidas>0||c.inv>0;
-    return `<div class="mc ${hasData?'':'empty'}" onclick="goMes('${m}')">
-      <div class="mc-name">${m}</div>
+    const cor=mcCores[i];
+    return `<div class="mc ${hasData?'':'empty'}" onclick="goMes('${m}')" style="${hasData?`border-left-color:${cor}`:''}">
+      <div class="mc-name" style="${hasData?`color:${cor}`:''}">${m}</div>
       ${hasData?`
         <div class="mc-row"><span class="mc-lbl">Entradas:</span><span class="mc-val pos">${fmt(c.ent)}</span></div>
         <div class="mc-row"><span class="mc-lbl">Saídas:</span><span class="mc-val neg">${fmt(c.saidas)}</span></div>
@@ -1175,12 +1183,12 @@ function renderMes(){
   e('mes-cards').innerHTML=`
     <div class="card green"><div class="card-label">💰 Entradas</div><div class="card-value">${fmt(c.ent)}</div></div>
     <div class="card red"><div class="card-label">💸 Saídas Totais</div><div class="card-value">${fmt(c.saidas)}</div></div>
-    <div class="card red"><div class="card-label">📌 Gastos Fixos</div><div class="card-value">${fmt(c.gf)}</div></div>
-    <div class="card red"><div class="card-label">🛒 Gastos Variáveis</div><div class="card-value">${fmt(c.gv)}</div></div>
+    <div class="card orange"><div class="card-label">📌 Gastos Fixos</div><div class="card-value">${fmt(c.gf)}</div></div>
+    <div class="card purple"><div class="card-label">🛒 Gastos Variáveis</div><div class="card-value">${fmt(c.gv)}</div></div>
     <div class="card blue"><div class="card-label">🏦 Investido</div><div class="card-value">${fmt(c.inv)}</div></div>
-    <div class="card gray"><div class="card-label">💲 Saldo</div><div class="card-value ${c.saldo>=0?'pos':'neg'}">${fmtSigned(c.saldo)}</div></div>
-    <div class="card gray"><div class="card-label">📊 % Comprometido</div><div class="card-value">${comprMes}</div></div>
-    <div class="card green"><div class="card-label">📈 Taxa Poupança</div><div class="card-value">${taxaMes}</div></div>
+    <div class="card ${c.saldo>=0?'teal':'red'}"><div class="card-label">💲 Saldo</div><div class="card-value">${fmtSigned(c.saldo)}</div></div>
+    <div class="card indigo"><div class="card-label">📊 % Comprometido</div><div class="card-value">${comprMes}</div></div>
+    <div class="card gray"><div class="card-label">📈 Taxa Poupança</div><div class="card-value">${taxaMes}</div></div>
   `;
   renderTab(tabAtiva);
   renderPayGrid(d,mesSel);
