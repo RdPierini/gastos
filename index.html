@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle Aí 📊</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2e7d32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Controle Aí">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 :root{--green:#2e7d32;--green-d:#1b5e20;--green-l:#e8f5e9;--red:#e53935;--red-d:#b71c1c;--blue:#1976d2;--blue-d:#0d47a1;--blue-l:#e3f2fd;--gray:#f0f0f0;--border:#d0d0d0;--shadow:0 2px 12px rgba(0,0,0,0.10);--text:#1a1a1a;--text-l:#555;--bg:#f0f4f8}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -2707,6 +2714,15 @@ document.addEventListener('click',ev=>{
 });
 
 init();
+
+// PWA — registra service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(()=>console.log('SW registrado'))
+      .catch(err=>console.warn('SW erro:',err));
+  });
+}
 </script>
 </body>
 </html>
