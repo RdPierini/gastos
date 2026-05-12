@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Gastos 📊</title>
+<title>Controla Aí 📊</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
 :root{--green:#2e7d32;--green-d:#1b5e20;--green-l:#e8f5e9;--red:#e53935;--red-d:#b71c1c;--blue:#1976d2;--blue-d:#0d47a1;--blue-l:#e3f2fd;--gray:#f0f0f0;--border:#d0d0d0;--shadow:0 2px 12px rgba(0,0,0,0.10);--text:#1a1a1a;--text-l:#555;--bg:#f0f4f8}
@@ -133,14 +133,21 @@ tbody td{padding:7px 12px;vertical-align:middle}
 /* ── Dark mode ── */
 body.dark{--green:#4caf50;--green-d:#81c784;--green-l:#1a2e1a;--red:#ef9a9a;--red-d:#ef9a9a;--blue:#9fc5e8;--blue-d:#90caf9;--blue-l:#0a1929;--gray:#2a2a2a;--border:#333;--shadow:0 2px 8px rgba(0,0,0,.4);--text:#e0e0e0;--text-l:#9e9e9e;--bg:#121212;background:#121212;color:#e0e0e0}
 body.dark .pos{color:#81c784}
-body.dark .card.green .card-value{color:#81c784}
-body.dark .card.gray .card-value{color:#bbb}
+body.dark .card-value{color:#fff}
 body.dark .header{background:#1b5e20}
 body.dark .nav{background:#1e1e1e;border-bottom-color:#2a4a2a}
 body.dark .nav-btn{color:#9e9e9e}
 body.dark .nav-btn:hover{background:#1a2e1a;color:#81c784}
 body.dark .nav-btn.active{color:#81c784;border-bottom-color:#4caf50}
-body.dark .section,body.dark .modal,body.dark .card,body.dark .mc{background:#1e1e1e}
+body.dark .section,body.dark .modal,body.dark .mc{background:#1e1e1e}
+body.dark .card.green{background:linear-gradient(135deg,#1b5e20,#2e7d32)}
+body.dark .card.red{background:linear-gradient(135deg,#7f0000,#c62828)}
+body.dark .card.orange{background:linear-gradient(135deg,#bf360c,#d84315)}
+body.dark .card.purple{background:linear-gradient(135deg,#4a148c,#6a1b9a)}
+body.dark .card.blue{background:linear-gradient(135deg,#0d47a1,#1565c0)}
+body.dark .card.teal{background:linear-gradient(135deg,#004d40,#00695c)}
+body.dark .card.indigo{background:linear-gradient(135deg,#1a237e,#283593)}
+body.dark .card.gray{background:linear-gradient(135deg,#263238,#37474f)}
 body.dark table{color:#e0e0e0}
 body.dark thead th{background:#2a4a2a}
 body.dark tbody tr{border-bottom-color:#333}
@@ -368,7 +375,7 @@ body.dark .ys-add{border-color:#333}
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">📊</div>
-    <div class="login-title">Controle de Gastos</div>
+    <div class="login-title">Controla Aí</div>
     <div class="login-sub">Entre com sua conta Google para acessar seus dados</div>
     <button class="login-btn" onclick="handleGoogleAuth()">
       <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E">
@@ -383,7 +390,7 @@ body.dark .ys-add{border-color:#333}
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <div class="sidebar-logo">📊 Controle de Gastos</div>
+    <div class="sidebar-logo">📊 Controla Aí</div>
     <button class="sidebar-close" onclick="closeSidebar()" title="Fechar menu">✕</button>
   </div>
   <div class="sidebar-year-wrap" id="yearPickerWrap">
@@ -452,7 +459,7 @@ body.dark .ys-add{border-color:#333}
 <div class="app-content">
 <div class="mobile-topbar">
   <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
-  <span class="mobile-topbar-title">📊 Controle de Gastos</span>
+  <span class="mobile-topbar-title">📊 Controla Aí</span>
   <button class="year-badge-mob" id="yearBadgeMob" onclick="openYearSheet()">
     <span id="yearBadgeMobLabel">2026</span><span class="yb-chev">▾</span>
   </button>
