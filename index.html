@@ -2295,9 +2295,10 @@ function divideAddConta(){
 
   const membrosOpts=ev.membros.map(m=>`<option value="${m}">${m}</option>`).join('');
   const membrosCheck=ev.membros.map(m=>`
-    <label style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;font-size:14px">
-      <input type="checkbox" value="${m}" checked> ${m}
-    </label>`).join('');
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="this.querySelector('input').click()">
+      <input type="checkbox" value="${m}" checked onclick="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--green);flex-shrink:0">
+      <span style="font-size:14px;font-weight:500;color:var(--text)">${m}</span>
+    </div>`).join('');
   const hoje=new Date().toLocaleDateString('pt-BR');
 
   e('modal-title').textContent='➕ Nova Conta';
