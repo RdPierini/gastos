@@ -422,6 +422,9 @@ body.dark .ys-add{border-color:#333}
     <button class="snav-btn" data-p="saude" onclick="showPage('saude')">
       <span class="snav-ico">❤️</span><span class="snav-lbl">Saúde Financeira</span>
     </button>
+    <button class="snav-btn" data-p="divide" onclick="showPage('divide')">
+      <span class="snav-ico">🤝</span><span class="snav-lbl">DivideAê</span>
+    </button>
     <hr class="snav-div">
     <button class="snav-btn" data-p="config" onclick="showPage('config')">
       <span class="snav-ico">⚙️</span><span class="snav-lbl">Configurações</span>
@@ -549,6 +552,19 @@ body.dark .ys-add{border-color:#333}
   </div>
 </div>
 
+<!-- DIVIDE AÊ -->
+<div id="page-divide" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <h2 style="font-size:22px;font-weight:800">🤝 DivideAê</h2>
+    <button class="btn btn-g" onclick="divideNovoEvento()">+ Novo Evento</button>
+  </div>
+  <div id="divide-lista"></div>
+  <div id="divide-evento-detalhe" style="display:none">
+    <button class="btn btn-outline btn-sm" style="margin-bottom:16px" onclick="divideVoltarLista()">← Voltar</button>
+    <div id="divide-detalhe-content"></div>
+  </div>
+</div>
+
 <!-- CONFIG -->
 <div id="page-config" class="page">
   <div class="grid2">
@@ -655,6 +671,7 @@ body.dark .ys-add{border-color:#333}
   <button class="bnav-btn" id="bnav-mes" onclick="openMonthSheet()"><span class="bnav-ico">📅</span>Meses</button>
   <button class="bnav-btn" data-p="investimentos" onclick="showPage('investimentos')"><span class="bnav-ico">🏦</span>Invest.</button>
   <button class="bnav-btn" data-p="saude" onclick="showPage('saude')"><span class="bnav-ico">❤️</span>Saúde</button>
+  <button class="bnav-btn" data-p="divide" onclick="showPage('divide')"><span class="bnav-ico">🤝</span>Divide</button>
   <button class="bnav-btn" data-p="config" onclick="showPage('config')"><span class="bnav-ico">⚙️</span>Config</button>
 </nav>
 
@@ -995,6 +1012,7 @@ function showPage(p){
   else if(p==='investimentos') renderInvestimentos();
   else if(p==='config') renderConfig();
   else if(p==='saude') renderSaude();
+  else if(p==='divide') renderDivide();
 }
 
 function goMes(mes){
@@ -1851,11 +1869,13 @@ function openModal(tipo,editId){
 function closeModal(){
   e('overlay').classList.remove('open');
   modalTipo=null;modalEditId=null;
+  if(e('modal-box')) delete e('modal-box').dataset.tipo;
 }
 
 function overlayClick(ev){ if(ev.target===e('overlay')) closeModal(); }
 
 function saveModal(){
+  if(e('modal-box')?.dataset.tipo==='divide-conta'){ divideSalvarConta(); return; }
   if(modalTipo==='metas'){
     const d=loadData();
     MESES.forEach(m=>{ d.metasInvestimento[m]=parseVal(e('meta-'+m)?.value)||0; });
@@ -2022,6 +2042,267 @@ function toggleDark(){
   if(btn){btn.querySelector('.snav-ico').textContent=dark?'☀️':'🌙';btn.querySelector('span:last-child').textContent=dark?'Modo Claro':'Modo Escuro';}
   const btnMob=e('btn-dark-mob');
   if(btnMob) btnMob.textContent=icon;
+}
+
+// ═══════════════════════════════════════════════
+// DIVIDE AÊ
+// ═══════════════════════════════════════════════
+let divideEventoAtivo=null;
+
+function getDivideData(){
+  try{const r=localStorage.getItem('divideAe');return r?JSON.parse(r):{eventos:[]};}
+  catch{return{eventos:[]};}
+}
+function saveDivideData(d){
+  localStorage.setItem('divideAe',JSON.stringify(d));
+  scheduleSync();
+}
+
+function renderDivide(){
+  const d=getDivideData();
+  e('divide-lista').style.display='block';
+  e('divide-evento-detalhe').style.display='none';
+  const lista=e('divide-lista');
+  if(!d.eventos.length){
+    lista.innerHTML=`<div class="empty" style="margin-top:40px"><div class="empty-icon">🤝</div><p>Nenhum evento ainda.<br>Clique em "+ Novo Evento" para começar.</p></div>`;
+    return;
+  }
+  lista.innerHTML=d.eventos.map(ev=>{
+    const total=ev.contas.reduce((s,c)=>s+c.valor,0);
+    const membros=ev.membros.length;
+    return `<div class="section" style="cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,.13)'" onmouseleave="this.style.boxShadow=''" onclick="divideAbrirEvento('${ev.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:17px;font-weight:700">${ev.nome}</div>
+          <div style="font-size:12px;color:var(--text-l);margin-top:3px">📅 ${ev.data} · 👥 ${membros} pessoa${membros!==1?'s':''} · 🧾 ${ev.contas.length} conta${ev.contas.length!==1?'s':''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:800;color:#1565c0">${fmt(total)}</div>
+          <div style="font-size:11px;color:var(--text-l)">total do evento</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        ${ev.membros.map(m=>`<span style="background:var(--green-l);color:var(--green-d);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${m}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function divideNovoEvento(){
+  const nome=prompt('Nome do evento (ex: Viagem para SP):');
+  if(!nome?.trim()) return;
+  const d=getDivideData();
+  const ev={
+    id:'ev-'+Date.now(),
+    nome:nome.trim(),
+    data:new Date().toLocaleDateString('pt-BR'),
+    membros:[],
+    contas:[]
+  };
+  d.eventos.unshift(ev);
+  saveDivideData(d);
+  divideAbrirEvento(ev.id);
+}
+
+function divideAbrirEvento(id){
+  const d=getDivideData();
+  divideEventoAtivo=d.eventos.find(ev=>ev.id===id);
+  if(!divideEventoAtivo) return;
+  e('divide-lista').style.display='none';
+  e('divide-evento-detalhe').style.display='block';
+  divideRenderDetalhe();
+}
+
+function divideVoltarLista(){
+  divideEventoAtivo=null;
+  renderDivide();
+}
+
+function divideRenderDetalhe(){
+  const ev=divideEventoAtivo;
+  const el=e('divide-detalhe-content');
+
+  // Calcular resumo
+  const saldos={};
+  ev.membros.forEach(m=>saldos[m]=0);
+  ev.contas.forEach(c=>{
+    const partic=c.participantes.filter(p=>ev.membros.includes(p));
+    if(!partic.length) return;
+    const parte=c.valor/partic.length;
+    saldos[c.pagoPor]=(saldos[c.pagoPor]||0)+c.valor;
+    partic.forEach(p=>saldos[p]=(saldos[p]||0)-parte);
+  });
+
+  // Simplificar dívidas
+  const dividas=[];
+  const credores=Object.entries(saldos).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const devedores=Object.entries(saldos).filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]);
+  const cred=[...credores.map(([n,v])=>({n,v}))];
+  const dev=[...devedores.map(([n,v])=>({n,v:-v}))];
+  let i=0,j=0;
+  while(i<cred.length&&j<dev.length){
+    const pagar=Math.min(cred[i].v,dev[j].v);
+    if(pagar>0.01) dividas.push({de:dev[j].n,para:cred[i].n,valor:pagar});
+    cred[i].v-=pagar; dev[j].v-=pagar;
+    if(cred[i].v<0.01) i++;
+    if(dev[j].v<0.01) j++;
+  }
+
+  const total=ev.contas.reduce((s,c)=>s+c.valor,0);
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <h2 style="font-size:20px;font-weight:800">${ev.nome}</h2>
+        <div style="font-size:13px;color:var(--text-l)">📅 ${ev.data}</div>
+      </div>
+      <button class="btn btn-sm" style="background:#ffebee;color:#c62828" onclick="divideExcluirEvento('${ev.id}')">🗑️ Excluir evento</button>
+    </div>
+
+    <!-- Membros -->
+    <div class="section">
+      <div class="sec-header">
+        <div class="sec-title">👥 Membros</div>
+        <button class="btn btn-g btn-sm" onclick="divideAddMembro()">+ Adicionar</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="divide-membros">
+        ${ev.membros.length
+          ? ev.membros.map(m=>`<span style="background:var(--green-l);color:var(--green-d);padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px">${m}<span style="cursor:pointer;opacity:.6;font-size:11px" onclick="divideRemoverMembro('${m}')">✕</span></span>`).join('')
+          : '<span style="color:var(--text-l);font-size:13px">Nenhum membro ainda</span>'}
+      </div>
+    </div>
+
+    <!-- Contas -->
+    <div class="section">
+      <div class="sec-header">
+        <div class="sec-title">🧾 Contas <span style="font-size:13px;font-weight:400;color:var(--text-l)">(Total: ${fmt(total)})</span></div>
+        <button class="btn btn-g btn-sm" onclick="divideAddConta()" ${!ev.membros.length?'disabled title="Adicione membros primeiro"':''}>+ Adicionar Conta</button>
+      </div>
+      ${ev.contas.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Descrição</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ação</th></tr></thead>
+          <tbody>
+            ${ev.contas.map(c=>`<tr>
+              <td>${c.descricao}</td>
+              <td class="td-r">${fmt(c.valor)}</td>
+              <td><span style="background:var(--blue-l);color:var(--blue-d);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${c.pagoPor}</span></td>
+              <td style="font-size:12px">${c.participantes.join(', ')}</td>
+              <td class="td-center"><button class="btn btn-sm" style="background:#ffebee;color:#c62828;padding:3px 8px" onclick="divideRemoverConta('${c.id}')">✕</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : '<div style="color:var(--text-l);font-size:13px;text-align:center;padding:20px">Nenhuma conta ainda</div>'}
+    </div>
+
+    <!-- Resumo -->
+    <div class="section">
+      <div class="sec-title" style="margin-bottom:16px">💰 Resumo — Quem deve pagar quem</div>
+      ${!ev.membros.length||!ev.contas.length ? '<div style="color:var(--text-l);font-size:13px;text-align:center;padding:10px">Adicione membros e contas para ver o resumo</div>' : `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px">
+          ${ev.membros.map(m=>{
+            const s=saldos[m]||0;
+            return `<div style="background:var(--bg);border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${s>0.01?'#2e7d32':s<-0.01?'#c62828':'#9e9e9e'}">
+              <div style="font-weight:700;font-size:14px;margin-bottom:6px">${m}</div>
+              <div style="font-size:18px;font-weight:800;color:${s>0.01?'#2e7d32':s<-0.01?'#c62828':'#9e9e9e'}">${s>0.01?'+':''}${fmt(Math.abs(s))}</div>
+              <div style="font-size:11px;color:var(--text-l);margin-top:3px">${s>0.01?'a receber':s<-0.01?'a pagar':'quitado'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        ${dividas.length ? `
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px">Transferências para acertar</div>
+          ${dividas.map(d=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px;flex-wrap:wrap">
+              <span style="font-weight:700;color:#c62828">${d.de}</span>
+              <span style="color:var(--text-l)">deve pagar</span>
+              <span style="font-weight:800;color:#1565c0">${fmt(d.valor)}</span>
+              <span style="color:var(--text-l)">para</span>
+              <span style="font-weight:700;color:#2e7d32">${d.para}</span>
+            </div>`).join('')}
+        ` : '<div style="color:#2e7d32;font-weight:600;text-align:center;padding:10px">✅ Tudo quitado!</div>'}
+      `}
+    </div>
+  `;
+}
+
+function divideAddMembro(){
+  const nome=prompt('Nome do membro:');
+  if(!nome?.trim()) return;
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  if(ev.membros.includes(nome.trim())){toast('Membro já adicionado');return;}
+  ev.membros.push(nome.trim());
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  divideRenderDetalhe();
+}
+
+function divideRemoverMembro(nome){
+  if(!confirm(`Remover "${nome}"? As contas onde ele participa serão afetadas.`)) return;
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  ev.membros=ev.membros.filter(m=>m!==nome);
+  ev.contas=ev.contas.map(c=>({...c,participantes:c.participantes.filter(p=>p!==nome)}));
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  divideRenderDetalhe();
+}
+
+function divideAddConta(){
+  const ev=divideEventoAtivo;
+  if(!ev.membros.length){toast('Adicione membros primeiro');return;}
+
+  const membrosOpts=ev.membros.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const membrosCheck=ev.membros.map(m=>`
+    <label style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;font-size:14px">
+      <input type="checkbox" value="${m}" checked> ${m}
+    </label>`).join('');
+
+  e('modal-title').textContent='➕ Nova Conta';
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Descrição</label><input id="da-desc" placeholder="Ex: Restaurante, Uber..."></div>
+    <div class="frow"><label>Valor (R$)</label><input id="da-valor" type="text" placeholder="0,00"></div>
+    <div class="frow"><label>Quem pagou</label><select id="da-pago">${membrosOpts}</select></div>
+    <div class="frow"><label>Participantes (quem divide)</label><div id="da-partic" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 12px">${membrosCheck}</div></div>
+  `;
+  e('modal-box').dataset.tipo='divide-conta';
+  e('overlay').classList.add('active');
+}
+
+function divideRemoverConta(id){
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  ev.contas=ev.contas.filter(c=>c.id!==id);
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  divideRenderDetalhe();
+}
+
+function divideExcluirEvento(id){
+  if(!confirm('Excluir este evento? Todos os dados serão perdidos.')) return;
+  const d=getDivideData();
+  d.eventos=d.eventos.filter(ev=>ev.id!==id);
+  saveDivideData(d);
+  divideVoltarLista();
+}
+
+function divideSalvarConta(){
+  const desc=e('da-desc')?.value.trim();
+  const valorRaw=e('da-valor')?.value.replace(',','.');
+  const valor=parseFloat(valorRaw);
+  const pagoPor=e('da-pago')?.value;
+  const participantes=[...document.querySelectorAll('#da-partic input:checked')].map(x=>x.value);
+  if(!desc){toast('Informe a descrição');return;}
+  if(!valor||valor<=0){toast('Informe um valor válido');return;}
+  if(!participantes.length){toast('Selecione ao menos um participante');return;}
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  ev.contas.push({id:'c-'+Date.now(),descricao:desc,valor,pagoPor,participantes});
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  closeModal();
+  divideRenderDetalhe();
+  toast('Conta adicionada!');
 }
 
 // ═══════════════════════════════════════════════
