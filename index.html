@@ -6,7 +6,7 @@
 <title>Controle de Gastos 📊</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
-:root{--green:#93c47d;--green-d:#6aa84f;--green-l:#d9ead3;--red:#ea9999;--red-d:#c62828;--blue:#9fc5e8;--blue-d:#1565c0;--blue-l:#e3f2fd;--gray:#efefef;--border:#e0e0e0;--shadow:0 2px 8px rgba(0,0,0,0.08);--text:#333;--text-l:#666;--bg:#f5f7fa}
+:root{--green:#2e7d32;--green-d:#1b5e20;--green-l:#e8f5e9;--red:#e53935;--red-d:#b71c1c;--blue:#1976d2;--blue-d:#0d47a1;--blue-l:#e3f2fd;--gray:#f0f0f0;--border:#d0d0d0;--shadow:0 2px 12px rgba(0,0,0,0.10);--text:#1a1a1a;--text-l:#555;--bg:#f0f4f8}
 *{margin:0;padding:0;box-sizing:border-box}
 html{overflow-x:hidden}
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
@@ -1362,12 +1362,18 @@ function renderSaude(){
   const consist=mesComDados>0?mesComInv/mesComDados*100:0;
 
   // ── Score ──
+  const temDados = s.ent > 0 || s.saidas > 0;
   let score=0;
-  if(taxaPoup>=20) score+=30; else if(taxaPoup>=10) score+=20; else if(taxaPoup>=5) score+=10;
-  if(compr<=50) score+=25; else if(compr<=60) score+=20; else if(compr<=70) score+=15; else if(compr<=80) score+=10; else if(compr<=90) score+=5;
-  if(s.saldo>=0) score+=20;
-  score+=Math.round(consist/100*15);
-  if(reserva>=6) score+=10; else if(reserva>=3) score+=7; else if(reserva>=1) score+=4;
+  if(temDados){
+    if(taxaPoup>=20) score+=30; else if(taxaPoup>=10) score+=20; else if(taxaPoup>=5) score+=10;
+    if(compr<=50) score+=25; else if(compr<=60) score+=20; else if(compr<=70) score+=15; else if(compr<=80) score+=10; else if(compr<=90) score+=5;
+    if(s.saldo>=0) score+=20; else score-=20;
+    score+=Math.round(consist/100*15);
+    if(reserva>=6) score+=10; else if(reserva>=3) score+=7; else if(reserva>=1) score+=4;
+    if(compr>100) score-=15;
+    if(compr>120) score-=15;
+    score=Math.max(0,Math.min(100,score));
+  }
 
   const sColor=score>=90?'#2e7d32':score>=80?'#43a047':score>=60?'#f9a825':score>=40?'#ef6c00':'#c62828';
   const sLabel=score>=90?'Excelente 💚':score>=80?'Bom 🟢':score>=60?'Regular 🟡':score>=40?'Atenção 🟠':'Crítico 🔴';
@@ -1381,8 +1387,13 @@ function renderSaude(){
       options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}}}
     });
   }
-  e('score-num').innerHTML=`<span style="color:${sColor}">${score}<small style="font-size:16px;font-weight:400">/100</small></span>`;
-  e('score-label').textContent=sLabel;
+  if(!temDados){
+    e('score-num').innerHTML=`<span style="color:#aaa;font-size:22px">—</span>`;
+    e('score-label').textContent='Adicione dados para calcular';
+  } else {
+    e('score-num').innerHTML=`<span style="color:${sColor}">${score}<small style="font-size:16px;font-weight:400">/100</small></span>`;
+    e('score-label').textContent=sLabel;
+  }
 
   // ── Métricas ──
   const c=v=>Math.min(100,v);
@@ -1719,7 +1730,7 @@ function openModal(tipo,editId){
         <div class="frow"><label>Pagamento</label><select id="f-pag"><option value="">Selecione...</option>${pagOpts}</select></div>
         <div class="frow"><label>Valor (R$)</label><input id="f-valor" type="text" value="${item?String(item.valor).replace('.',','):''}" placeholder="0,00"></div>
       </div>
-      ${tipo==='gf'?`<div class="frow"><label><input type="checkbox" id="f-pago" ${item&&item.pago?'checked':''}> Já pago?</label></div>`:''}
+      ${tipo==='gf'?`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer" onclick="document.getElementById('f-pago').click()"><input type="checkbox" id="f-pago" ${item&&item.pago?'checked':''} onclick="event.stopPropagation()"><span style="font-size:14px;font-weight:500;color:var(--text)">Já pago?</span></div>`:''}
     `;
   } else if(tipo==='ent'){
     body=`
