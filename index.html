@@ -702,7 +702,7 @@ body.dark .ys-add{border-color:#333}
     <div id="modal-body"></div>
     <div class="modal-footer">
       <button class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-save" onclick="saveModal()">Salvar</button>
+      <button class="btn btn-save" id="modal-save-btn" onclick="saveModal()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1870,12 +1870,23 @@ function closeModal(){
   e('overlay').classList.remove('open');
   modalTipo=null;modalEditId=null;
   if(e('modal-box')) delete e('modal-box').dataset.tipo;
+  const btn=e('modal-save-btn');
+  if(btn) btn.textContent='Salvar';
+}
+function divideModalBtn(label){
+  const btn=e('modal-save-btn');
+  if(btn) btn.textContent=label;
 }
 
 function overlayClick(ev){ if(ev.target===e('overlay')) closeModal(); }
 
 function saveModal(){
-  if(e('modal-box')?.dataset.tipo==='divide-conta'){ divideSalvarConta(); return; }
+  const dtipo=e('modal-box')?.dataset.tipo;
+  if(dtipo==='divide-conta'){ divideSalvarConta(); return; }
+  if(dtipo==='divide-novo-evento'){ divideSalvarNovoEvento(); return; }
+  if(dtipo==='divide-membro'){ divideSalvarMembro(); return; }
+  if(dtipo==='divide-rm-membro'){ divideConfirmarRemoverMembro(); return; }
+  if(dtipo==='divide-rm-evento'){ divideConfirmarExcluirEvento(); return; }
   if(modalTipo==='metas'){
     const d=loadData();
     MESES.forEach(m=>{ d.metasInvestimento[m]=parseVal(e('meta-'+m)?.value)||0; });
@@ -2089,18 +2100,26 @@ function renderDivide(){
 }
 
 function divideNovoEvento(){
-  const nome=prompt('Nome do evento (ex: Viagem para SP):');
-  if(!nome?.trim()) return;
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  e('modal-title').textContent='🤝 Novo Evento';
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Nome do evento</label><input id="dv-nome" placeholder="Ex: Viagem para SP, Churrasco..."></div>
+    <div class="frow"><label>Data</label><input id="dv-data" type="text" value="${hoje}" placeholder="dd/mm/aaaa"></div>
+  `;
+  e('modal-box').dataset.tipo='divide-novo-evento';
+  e('overlay').classList.add('open');
+  setTimeout(()=>e('dv-nome')?.focus(),100);
+}
+
+function divideSalvarNovoEvento(){
+  const nome=e('dv-nome')?.value.trim();
+  const data=e('dv-data')?.value.trim()||new Date().toLocaleDateString('pt-BR');
+  if(!nome){toast('Informe o nome do evento');return;}
   const d=getDivideData();
-  const ev={
-    id:'ev-'+Date.now(),
-    nome:nome.trim(),
-    data:new Date().toLocaleDateString('pt-BR'),
-    membros:[],
-    contas:[]
-  };
+  const ev={id:'ev-'+Date.now(),nome,data,membros:[],contas:[]};
   d.eventos.unshift(ev);
   saveDivideData(d);
+  closeModal();
   divideAbrirEvento(ev.id);
 }
 
@@ -2181,10 +2200,11 @@ function divideRenderDetalhe(){
       ${ev.contas.length ? `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Descrição</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ação</th></tr></thead>
+          <thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ação</th></tr></thead>
           <tbody>
             ${ev.contas.map(c=>`<tr>
               <td>${c.descricao}</td>
+              <td style="white-space:nowrap;color:var(--text-l);font-size:12px">${c.data||'—'}</td>
               <td class="td-r">${fmt(c.valor)}</td>
               <td><span style="background:var(--blue-l);color:var(--blue-d);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${c.pagoPor}</span></td>
               <td style="font-size:12px">${c.participantes.join(', ')}</td>
@@ -2226,25 +2246,46 @@ function divideRenderDetalhe(){
 }
 
 function divideAddMembro(){
-  const nome=prompt('Nome do membro:');
-  if(!nome?.trim()) return;
+  e('modal-title').textContent='👤 Adicionar Membro';
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Nome</label><input id="dv-membro" placeholder="Ex: João, Maria..."></div>
+  `;
+  e('modal-box').dataset.tipo='divide-membro';
+  e('overlay').classList.add('open');
+  setTimeout(()=>e('dv-membro')?.focus(),100);
+}
+
+function divideSalvarMembro(){
+  const nome=e('dv-membro')?.value.trim();
+  if(!nome){toast('Informe o nome');return;}
   const d=getDivideData();
   const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
-  if(ev.membros.includes(nome.trim())){toast('Membro já adicionado');return;}
-  ev.membros.push(nome.trim());
+  if(ev.membros.includes(nome)){toast('Membro já adicionado');return;}
+  ev.membros.push(nome);
   saveDivideData(d);
   divideEventoAtivo=ev;
+  closeModal();
   divideRenderDetalhe();
 }
 
 function divideRemoverMembro(nome){
-  if(!confirm(`Remover "${nome}"? As contas onde ele participa serão afetadas.`)) return;
+  e('modal-title').textContent='⚠️ Remover Membro';
+  e('modal-body').innerHTML=`<p style="font-size:14px;line-height:1.6">Tem certeza que deseja remover <strong>${nome}</strong>?<br><span style="color:var(--text-l);font-size:13px">Ele será removido de todas as contas deste evento.</span></p>`;
+  e('modal-box').dataset.tipo='divide-rm-membro';
+  e('modal-box').dataset.membro=nome;
+  e('overlay').classList.add('open');
+  divideModalBtn('Remover');
+}
+
+function divideConfirmarRemoverMembro(){
+  const nome=e('modal-box').dataset.membro;
   const d=getDivideData();
   const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
   ev.membros=ev.membros.filter(m=>m!==nome);
   ev.contas=ev.contas.map(c=>({...c,participantes:c.participantes.filter(p=>p!==nome)}));
   saveDivideData(d);
   divideEventoAtivo=ev;
+  closeModal();
   divideRenderDetalhe();
 }
 
@@ -2257,16 +2298,20 @@ function divideAddConta(){
     <label style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;font-size:14px">
       <input type="checkbox" value="${m}" checked> ${m}
     </label>`).join('');
+  const hoje=new Date().toLocaleDateString('pt-BR');
 
   e('modal-title').textContent='➕ Nova Conta';
   e('modal-body').innerHTML=`
     <div class="frow"><label>Descrição</label><input id="da-desc" placeholder="Ex: Restaurante, Uber..."></div>
-    <div class="frow"><label>Valor (R$)</label><input id="da-valor" type="text" placeholder="0,00"></div>
+    <div class="frow-half">
+      <div class="frow"><label>Data</label><input id="da-data" type="text" value="${hoje}" placeholder="dd/mm/aaaa"></div>
+      <div class="frow"><label>Valor (R$)</label><input id="da-valor" type="text" placeholder="0,00"></div>
+    </div>
     <div class="frow"><label>Quem pagou</label><select id="da-pago">${membrosOpts}</select></div>
     <div class="frow"><label>Participantes (quem divide)</label><div id="da-partic" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 12px">${membrosCheck}</div></div>
   `;
   e('modal-box').dataset.tipo='divide-conta';
-  e('overlay').classList.add('active');
+  e('overlay').classList.add('open');
 }
 
 function divideRemoverConta(id){
@@ -2279,15 +2324,26 @@ function divideRemoverConta(id){
 }
 
 function divideExcluirEvento(id){
-  if(!confirm('Excluir este evento? Todos os dados serão perdidos.')) return;
+  e('modal-title').textContent='🗑️ Excluir Evento';
+  e('modal-body').innerHTML=`<p style="font-size:14px;line-height:1.6">Tem certeza que deseja excluir este evento?<br><span style="color:#c62828;font-size:13px">Todos os membros e contas serão perdidos permanentemente.</span></p>`;
+  e('modal-box').dataset.tipo='divide-rm-evento';
+  e('modal-box').dataset.eventoId=id;
+  e('overlay').classList.add('open');
+  divideModalBtn('Excluir');
+}
+
+function divideConfirmarExcluirEvento(){
+  const id=e('modal-box').dataset.eventoId;
   const d=getDivideData();
   d.eventos=d.eventos.filter(ev=>ev.id!==id);
   saveDivideData(d);
+  closeModal();
   divideVoltarLista();
 }
 
 function divideSalvarConta(){
   const desc=e('da-desc')?.value.trim();
+  const data=e('da-data')?.value.trim()||new Date().toLocaleDateString('pt-BR');
   const valorRaw=e('da-valor')?.value.replace(',','.');
   const valor=parseFloat(valorRaw);
   const pagoPor=e('da-pago')?.value;
@@ -2297,7 +2353,7 @@ function divideSalvarConta(){
   if(!participantes.length){toast('Selecione ao menos um participante');return;}
   const d=getDivideData();
   const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
-  ev.contas.push({id:'c-'+Date.now(),descricao:desc,valor,pagoPor,participantes});
+  ev.contas.push({id:'c-'+Date.now(),descricao:desc,data,valor,pagoPor,participantes});
   saveDivideData(d);
   divideEventoAtivo=ev;
   closeModal();
