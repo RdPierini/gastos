@@ -250,7 +250,7 @@ hr.snav-div{margin:8px 16px;border:none;border-top:1px solid var(--border)}
 .bnav-btn.active{color:var(--green-d)}
 .bnav-btn.active .bnav-ico{transform:translateY(-2px)}
 .bnav-btn.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:3px;background:var(--green);border-radius:0 0 4px 4px}
-.month-sheet{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:12px 20px 90px;z-index:300;box-shadow:0 -4px 24px rgba(0,0,0,.18);max-height:80vh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.month-sheet{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:12px 20px 100px;z-index:300;box-shadow:0 -4px 24px rgba(0,0,0,.18);max-height:75vh;overflow-y:auto;overscroll-behavior:contain}
 .month-sheet.open{display:block}
 .ms-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 14px;cursor:grab;flex-shrink:0}
 .ms-title{font-size:15px;font-weight:700;margin-bottom:14px;text-align:center}
@@ -697,9 +697,12 @@ body.dark .ys-add{border-color:#333}
 </nav>
 
 <!-- MONTH SHEET (mobile) -->
-<div class="month-sheet" id="monthSheet" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()">
-  <div class="ms-handle" onclick="closeMonthSheet()"></div>
-  <div class="ms-title">📅 Selecionar Mês</div>
+<div class="month-sheet" id="monthSheet">
+  <div class="ms-handle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="ms-title" style="margin-bottom:0">📅 Selecionar Mês</div>
+    <button onclick="closeMonthSheet()" style="background:var(--gray);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-l)">✕</button>
+  </div>
   <div class="ms-grid" id="ms-grid"></div>
 </div>
 <div class="ms-overlay" id="msOverlay" onclick="closeMonthSheet()"></div>
@@ -2036,22 +2039,36 @@ function updateParcelaInfo(){
 function createAutoParCelas(tipo,template,parAtual,parTotal){
   const mesIdx=MESES.indexOf(mesSel);
   let count=0;
+  // Agrupa por ano para salvar cada ano de uma vez
+  const porAno={};
   for(let i=1;i<=(parTotal-parAtual);i++){
     const absIdx=mesIdx+i;
     const futAno=ano+Math.floor(absIdx/12);
     const futMes=MESES[absIdx%12];
+    if(!porAno[futAno]) porAno[futAno]=[];
+    porAno[futAno].push({futMes,par:`${parAtual+i}/${parTotal}`,data:adjustParcelaDate(template.data,futMes,futAno)});
+    count++;
+  }
+  // Salva cada ano de uma vez
+  Object.entries(porAno).forEach(([futAno,itens])=>{
+    futAno=+futAno;
     const ys=getYears();
-    if(!ys.includes(futAno)){ys.push(futAno);ys.sort();saveYears(ys);localStorage.setItem(sKey(futAno),JSON.stringify(createEmptyYear()));}
+    if(!ys.includes(futAno)){ys.push(futAno);ys.sort();saveYears(ys);}
     const key=sKey(futAno);
     let fd=localStorage.getItem(key);
     fd=fd?JSON.parse(fd):createEmptyYear();
-    const entry={...template,id:uid(),parcela:`${parAtual+i}/${parTotal}`,data:adjustParcelaDate(template.data,futMes,futAno)};
-    if(tipo==='gf') entry.pago=false;
-    (tipo==='gf'?fd.meses[futMes].gastosFixos:fd.meses[futMes].gastosVariaveis).push(entry);
+    itens.forEach(({futMes,par,data})=>{
+      const entry={...template,id:uid(),parcela:par,data};
+      if(tipo==='gf') entry.pago=false;
+      (tipo==='gf'?fd.meses[futMes].gastosFixos:fd.meses[futMes].gastosVariaveis).push(entry);
+    });
     localStorage.setItem(key,JSON.stringify(fd));
-    count++;
+  });
+  if(count>0){
+    renderYearSel();
+    scheduleSync();
+    toast(`${count} parcela${count>1?'s':''} criada${count>1?'s':''} automaticamente!`);
   }
-  if(count>0){renderYearSel();toast(`${count} parcela${count>1?'s':''} criada${count>1?'s':''} automaticamente!`);}
 }
 
 function adjustParcelaDate(dateStr,futMes,futAno){
