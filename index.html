@@ -1023,7 +1023,7 @@ function showPage(p){
   else if(p==='investimentos') renderInvestimentos();
   else if(p==='config') renderConfig();
   else if(p==='saude') renderSaude();
-  else if(p==='divide') renderDivide();
+  else if(p==='divide'){renderDivide();syncToCloud();}
 }
 
 function goMes(mes){
@@ -2377,6 +2377,7 @@ function divideSalvarConta(){
 // FIREBASE / GOOGLE SYNC
 // ═══════════════════════════════════════════════
 let fbApp=null, fbAuth=null, fbDb=null, fbUser=null;
+let realtimeUnsubs=[];
 let syncTimeout=null;
 
 const DEFAULT_FB_CONFIG={
@@ -2450,11 +2451,13 @@ async function loadFirebase(){
         const sec=e('fb-config-section');
         if(sec) sec.style.display=user.email==='rodrigorivelino656@gmail.com'?'':'none';
         syncFromCloud();
+        startRealtimeListeners(user.uid);
       } else {
         e('login-screen').classList.remove('hidden');
         e('login-status').textContent='Faça login para acessar seus dados.';
         const sec=e('fb-config-section');
         if(sec) sec.style.display='none';
+        stopRealtimeListeners();
       }
     });
   } catch(err){
@@ -2592,6 +2595,7 @@ async function syncFromCloud(){
     else if(curActive.includes('mes')) renderMes();
     else if(curActive.includes('investimentos')) renderInvestimentos();
     else if(curActive.includes('saude')) renderSaude();
+    else if(curActive.includes('divide')) renderDivide();
     setSyncStatus('ok','Sincronizado · '+fbUser.displayName);
     toast('☁️ Dados sincronizados do Google!');
   } catch(err){
@@ -2601,6 +2605,49 @@ async function syncFromCloud(){
 }
 
 // Debounced auto-sync: call this after any data save
+function startRealtimeListeners(uid){
+  stopRealtimeListeners();
+
+  // Listener: DivideAí
+  const divRef=fbDb.collection('users').doc(uid).collection('extras').doc('divideAe');
+  const unsub1=divRef.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const raw=snap.data().data;
+    if(!raw) return;
+    const local=localStorage.getItem('divideAe');
+    if(raw===local) return; // sem mudança
+    localStorage.setItem('divideAe',raw);
+    const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
+    if(curActive.includes('divide')) renderDivide();
+    setSyncStatus('ok','Sincronizado • '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  });
+  realtimeUnsubs.push(unsub1);
+
+  // Listener: anos financeiros
+  const anosRef=fbDb.collection('users').doc(uid).collection('anos');
+  const unsub2=anosRef.onSnapshot(snap=>{
+    let changed=false;
+    snap.forEach(doc=>{
+      const raw=doc.data().data;
+      const local=localStorage.getItem(sKey(parseInt(doc.id)));
+      if(raw&&raw!==local){localStorage.setItem(sKey(parseInt(doc.id)),raw);changed=true;}
+    });
+    if(!changed) return;
+    const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
+    if(curActive.includes('dashboard')) renderDashboard();
+    else if(curActive.includes('mes')) renderMes();
+    else if(curActive.includes('investimentos')) renderInvestimentos();
+    else if(curActive.includes('saude')) renderSaude();
+    setSyncStatus('ok','Sincronizado • '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  });
+  realtimeUnsubs.push(unsub2);
+}
+
+function stopRealtimeListeners(){
+  realtimeUnsubs.forEach(u=>u());
+  realtimeUnsubs=[];
+}
+
 function scheduleSync(){
   if(!fbUser||!fbDb) return;
   clearTimeout(syncTimeout);
