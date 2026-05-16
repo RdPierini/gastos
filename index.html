@@ -100,7 +100,7 @@ tbody td{padding:7px 12px;vertical-align:middle}
 .btn-outline{background:none;border:1.5px solid var(--green);color:var(--green-d)}
 .btn-outline:hover{background:var(--green-l)}
 .btn-sm{padding:4px 10px;font-size:12px}
-.btn-icon{background:none;border:none;cursor:pointer;padding:3px 7px;border-radius:4px;font-size:14px;line-height:1}
+.btn-icon{background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:4px;font-size:14px;line-height:1;vertical-align:middle;display:inline-flex;align-items:center;justify-content:center}
 .btn-edit{color:#1976d2}.btn-edit:hover{background:#e3f2fd}
 .btn-del{color:var(--red-d)}.btn-del:hover{background:#ffebee}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
@@ -109,8 +109,8 @@ tbody td{padding:7px 12px;vertical-align:middle}
 .modal-title{font-size:17px;font-weight:700;margin-bottom:18px}
 .frow{margin-bottom:12px}
 .frow label{display:block;font-size:11px;font-weight:600;color:var(--text-l);text-transform:uppercase;margin-bottom:4px}
-.frow input,.frow select{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;outline:none}
-.frow input:focus,.frow select:focus{border-color:var(--green)}
+.frow input,.frow select,.frow-inline-input{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;outline:none;background:#fff;color:var(--text)}
+.frow input:focus,.frow select:focus,.frow-inline-input:focus{border-color:var(--green)}
 .frow-half{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
 .btn-cancel{background:var(--gray);color:var(--text)}.btn-cancel:hover{background:#ddd}
@@ -166,7 +166,7 @@ body.dark .tab-btn.active{color:#81c784;border-bottom-color:#4caf50}
 body.dark .tab-btn:hover:not(.active){background:#252525;color:#81c784}
 body.dark .tabs{border-bottom-color:#333}
 body.dark .pay-item{background:#2a2a2a}
-body.dark .frow input,body.dark .frow select{background:#252525;color:#e0e0e0;border-color:#444}
+body.dark .frow input,body.dark .frow select,body.dark .frow-inline-input{background:#252525;color:#e0e0e0;border-color:#444}
 body.dark .frow input:focus,body.dark .frow select:focus{border-color:#4caf50}
 body.dark .add-tag-input{background:#252525;color:#e0e0e0;border-color:#444}
 body.dark .btn-cancel{background:#333;color:#e0e0e0}
@@ -182,6 +182,8 @@ body.dark .progress-bar{background:#333}
 body.dark .overlay{background:rgba(0,0,0,.75)}
 body.dark .toast{background:#444}
 body.dark .mc.empty{border-left-color:#444}
+body.dark .mc{background:#252525;border-color:#333}
+body.dark .mc-row{color:#aaa}
 body.dark .total-row{background:var(--green-l)}
 body.dark .year-sel option{background:#1e1e1e;color:#e0e0e0}
 body.dark .year-picker{background:#1e1e1e;border:1px solid #333}
@@ -488,7 +490,7 @@ body.dark .ys-add{border-color:#333}
     <div class="section" style="display:flex;flex-direction:column">
       <div class="sec-title" style="margin-bottom:12px">📈 Entradas vs Saídas por Mês</div>
       <div class="chart-wrap"><canvas id="chart-anual"></canvas></div>
-      <div id="dash-anual-stats" style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+      <div id="dash-anual-stats" style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start"></div>
     </div>
     <div class="section">
       <div class="sec-title" style="margin-bottom:12px">🗓️ Navegação por Mês</div>
@@ -573,6 +575,18 @@ body.dark .ys-add{border-color:#333}
   <div class="section">
     <div class="sec-title" style="margin-bottom:10px">📈 Meta vs Investido por Mês</div>
     <div class="chart-wrap"><canvas id="chart-inv"></canvas></div>
+  </div>
+  <!-- Detalhes do mês -->
+  <div class="section">
+    <div class="sec-header" style="margin-bottom:14px">
+      <h3 id="inv-mes-title" style="font-size:16px;font-weight:700"></h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="navInvMes(-1)">◀ Anterior</button>
+        <button class="btn btn-outline btn-sm" onclick="navInvMes(1)">Próximo ▶</button>
+      </div>
+    </div>
+    <div class="table-actions"><button class="btn btn-g btn-sm" onclick="openInvMesModal()">+ Adicionar Investimento</button></div>
+    <div class="table-wrap" id="tbl-inv-mes"></div>
   </div>
 </div>
 
@@ -860,6 +874,7 @@ const DADOS_2026 = {
 // ═══════════════════════════════════════════════
 let ano = 2026;
 let mesSel = 'Janeiro';
+let invMesSel = null;
 let tabAtiva = 'gf';
 let modalTipo = null;
 let modalEditId = null;
@@ -1106,6 +1121,7 @@ function selTab(t){
 
 function changeYear(y){
   ano=+y;
+  invMesSel=null; // reset mês de investimento ao trocar de ano
   const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
   renderYearSel();
   if(curActive.includes('mes')) renderMes();
@@ -1171,7 +1187,7 @@ function renderAnualStats(d){
   const maiorInv=mesesDados.reduce((a,b)=>b.c.inv>a.c.inv?b:a);
   const mediaMensal=mesesDados.reduce((s,x)=>s+x.c.saidas,0)/mesesDados.length;
   const stat=(ico,label,titulo,sub,cor)=>`
-    <div style="background:var(--bg);border-radius:10px;padding:12px 10px;text-align:center;border-top:3px solid ${cor}">
+    <div style="background:var(--gray);border-radius:10px;padding:12px 10px;text-align:center;border-top:3px solid ${cor}">
       <div style="font-size:18px;margin-bottom:3px">${ico}</div>
       <div style="font-size:9px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${label}</div>
       <div style="font-size:13px;font-weight:700;color:${cor};line-height:1.2">${titulo}</div>
@@ -1322,9 +1338,9 @@ function renderTbl(tipo){
         <td>${x.pagamento||'-'}</td>
         <td class="td-r">${fmt(x.valor)}</td>
         <td class="td-center"><span class="td-pago ${x.pago?'sim':'nao'}" style="cursor:pointer" onclick="togglePago('${tipo}','${x.id}')" title="Clique para alternar">${x.pago?'✅ Sim':'⬜ Não'}</span></td>
-        <td class="td-center">
+        <td class="td-center" style="white-space:nowrap">
           <button class="btn-icon btn-edit" onclick="openModal('${tipo}','${x.id}')" title="Editar">✏️</button>
-          ${x.parcela&&x.parcela.match(/^\d+\/\d+$/)?`<button class="btn-icon" onclick="openEditParcelasModal('${tipo}','${x.id}')" title="Editar todas as parcelas" style="font-size:13px">📋</button>`:''}
+          ${x.parcela&&x.parcela.match(/^\d+\/\d+$/)?`<button class="btn-icon" onclick="openEditParcelasModal('${tipo}','${x.id}')" title="Editar parcelas" style="color:#7b1fa2">📋</button>`:''}
           <button class="btn-icon btn-del" onclick="delEntry('${tipo}','${x.id}')" title="Excluir">🗑️</button>
         </td>
       </tr>`).join('')}
@@ -1421,7 +1437,7 @@ function renderPayGrid(d,mes){
   `).join('');
   // Gráfico de pizza
   if(typeof Chart==='undefined') return;
-  const payColors=['#9fc5e8','#93c47d','#ea9999','#f9cb9c','#b4a7d6','#76a5af','#d5a6bd','#ffe599'];
+  const payColors=['#1e88e5','#43a047','#e53935','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41','#039be5','#d81b60'];
   if(charts.pay) charts.pay.destroy();
   const ctx=e('chart-pay')?.getContext('2d');
   if(!ctx) return;
@@ -1469,7 +1485,8 @@ function renderChartCat(d,mes){
   const entries=Object.entries(cats).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   if(!entries.length) return;
 
-  const colors=['#93c47d','#ea9999','#9fc5e8','#f9cb9c','#b4a7d6','#76a5af','#d5a6bd','#ffe599','#a2c4c9','#ffd966'];
+  const paletteBase=['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41','#039be5','#c0ca33','#00897b','#d81b60'];
+  const palette=entries.map((_,i)=>paletteBase[i%paletteBase.length]);
   const isMobile=window.innerWidth<600;
 
   if(charts.cat) charts.cat.destroy();
@@ -1478,7 +1495,7 @@ function renderChartCat(d,mes){
     type:'doughnut',
     data:{
       labels:entries.map(([c])=>c),
-      datasets:[{data:entries.map(([,v])=>v),backgroundColor:colors.slice(0,entries.length),borderWidth:2}]
+      datasets:[{data:entries.map(([,v])=>v),backgroundColor:palette,borderWidth:2,borderColor:'#fff'}]
     },
     options:{
       responsive:true,
@@ -1488,26 +1505,16 @@ function renderChartCat(d,mes){
           position:isMobile?'bottom':'right',
           labels:{
             font:{size:isMobile?10:11},
-            boxWidth:isMobile?10:12,
-            padding:isMobile?6:10,
-            generateLabels:(chart)=>{
-              const ds=chart.data;
-              const total=ds.datasets[0].data.reduce((a,b)=>a+b,0);
-              return ds.labels.map((label,i)=>({
-                text:isMobile?`${label.length>12?label.slice(0,12)+'…':label} ${(ds.datasets[0].data[i]/total*100).toFixed(0)}%`:label,
-                fillStyle:ds.datasets[0].backgroundColor[i],
-                strokeStyle:'#fff',
-                lineWidth:1,
-                index:i
-              }));
-            }
+            boxWidth:isMobile?10:14,
+            padding:isMobile?5:10,
+            color:'var(--text)'
           }
         },
         datalabels:{
           color:'#fff',
           font:{weight:'bold',size:isMobile?9:11},
-          display:(ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return s>0&&(ctx.dataset.data[ctx.dataIndex]/s)>0.06;},
-          formatter:(v,ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return(v/s*100).toFixed(1)+'%';}
+          display:(ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return s>0&&(ctx.dataset.data[ctx.dataIndex]/s)>0.05;},
+          formatter:(v,ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return(v/s*100).toFixed(0)+'%';}
         }
       }
     }
@@ -1518,6 +1525,7 @@ function renderChartCat(d,mes){
 // RENDER INVESTIMENTOS
 // ═══════════════════════════════════════════════
 function renderInvestimentos(){
+  if(!invMesSel) invMesSel=mesSel;
   const d=loadData();
   e('ano-inv-title').textContent=ano;
   let totalMeta=0,totalInv=0;
@@ -1557,6 +1565,7 @@ function renderInvestimentos(){
   </table>`;
 
   renderChartInv(d);
+  renderInvMes();
 }
 
 function renderChartInv(d){
@@ -1577,6 +1586,131 @@ function renderChartInv(d){
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},datalabels:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}
   });
+}
+
+// ═══════════════════════════════════════════════
+// INVESTIMENTOS — DETALHE DO MÊS
+// ═══════════════════════════════════════════════
+function renderInvMes(){
+  if(!invMesSel) invMesSel=mesSel;
+  const d=loadData();
+  const arr=d.meses[invMesSel].investimentos;
+  const meta=d.metasInvestimento[invMesSel]||0;
+  const total=arr.reduce((s,x)=>s+x.valor,0);
+  const pct=meta>0?Math.min(120,total/meta*100):0;
+  e('inv-mes-title').textContent=`🗓️ ${invMesSel} ${ano}`;
+  if(!arr.length){
+    e('tbl-inv-mes').innerHTML=`
+      ${meta>0?`<div style="background:var(--blue-l);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--blue-d)">Meta: <strong>${fmt(meta)}</strong></div>`:''}
+      <div class="empty"><div class="empty-icon">🏦</div><p>Nenhum investimento em ${invMesSel}.</p></div>`;
+    return;
+  }
+  e('tbl-inv-mes').innerHTML=`
+    <div style="background:var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div><div style="font-size:11px;color:#fff;opacity:.8">Meta</div><div style="font-size:15px;font-weight:700;color:#fff">${fmt(meta)}</div></div>
+      <div><div style="font-size:11px;color:#fff;opacity:.8">Investido</div><div style="font-size:15px;font-weight:700;color:#fff">${fmt(total)}</div></div>
+      <div><div style="font-size:11px;color:#fff;opacity:.8">Saldo meta</div><div style="font-size:15px;font-weight:700;color:${total>=meta?'#a5d6a7':'#ef9a9a'}">${fmtSigned(total-meta)}</div></div>
+      <div style="flex:1;min-width:100px">
+        <div class="progress-bar" style="height:10px">
+          <div class="progress-fill ${total>=meta?'pf-over':'pf-ok'}" style="width:${pct}%"></div>
+        </div>
+        <div style="font-size:11px;color:#fff;opacity:.8;margin-top:3px">${pct.toFixed(0)}% da meta</div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead>
+      <tbody>
+        ${arr.map(x=>`<tr>
+          <td>${x.descricao}</td>
+          <td class="td-r" style="color:#1565c0;font-weight:600">${fmt(x.valor)}</td>
+          <td class="td-center" style="white-space:nowrap">
+            <button class="btn-icon btn-edit" onclick="openInvMesModal('${x.id}')">✏️</button>
+            <button class="btn-icon btn-del" onclick="delInvMes('${x.id}')">🗑️</button>
+          </td>
+        </tr>`).join('')}
+        <tr style="background:var(--blue-l)">
+          <td style="font-weight:700">Total</td>
+          <td class="td-r" style="font-weight:700;color:var(--blue-d)">${fmt(total)}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>`;
+}
+
+function navInvMes(dir){
+  if(!invMesSel) invMesSel=mesSel;
+  const idx=MESES.indexOf(invMesSel);
+  const ni=idx+dir;
+  if(ni>=0&&ni<12){ invMesSel=MESES[ni]; }
+  else if(ni<0){ invMesSel='Dezembro'; }
+  else { invMesSel='Janeiro'; }
+  renderInvMes();
+}
+
+function openInvMesModal(editId){
+  if(!invMesSel) invMesSel=mesSel;
+  const d=loadData();
+  const arr=d.meses[invMesSel].investimentos;
+  const item=editId?arr.find(x=>x.id===editId):null;
+  e('modal-title').textContent=(editId?'Editar ':'Adicionar ')+'Investimento — '+invMesSel;
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Descrição</label><input id="f-inv-desc" value="${item?item.descricao:''}" placeholder="Ex: Tesouro Direto"></div>
+    <div class="frow"><label>Valor (R$)</label><input id="f-inv-valor" type="text" value="${item?String(item.valor).replace('.',','):''}" placeholder="0,00"></div>
+  `;
+  e('modal-box').dataset.tipo='inv-mes';
+  e('modal-box').dataset.invEditId=editId||'';
+  e('modal-save-btn').textContent='Salvar';
+  e('overlay').classList.add('open');
+  setTimeout(()=>e('f-inv-desc')?.focus(),50);
+}
+
+function saveInvMes(){
+  const editId=e('modal-box').dataset.invEditId;
+  const desc=e('f-inv-desc')?.value?.trim();
+  const valor=parseVal(e('f-inv-valor')?.value);
+  if(!desc){toast('Preencha a descrição');return;}
+  const d=loadData();
+  const arr=d.meses[invMesSel].investimentos;
+  if(editId){
+    const item=arr.find(x=>x.id===editId);
+    if(item){item.descricao=desc;item.valor=Math.abs(valor);}
+    toast('Atualizado!');
+  } else {
+    arr.push({id:uid(),descricao:desc,valor:Math.abs(valor)});
+    toast('Adicionado!');
+  }
+  saveData(d);
+  closeModal();
+  renderInvMes();
+  renderInvestimentos();
+}
+
+function delInvMes(id){
+  const d=loadData();
+  const arr=d.meses[invMesSel].investimentos;
+  const item=arr.find(x=>x.id===id);
+  if(!item) return;
+  e('modal-title').textContent='🗑️ Confirmar Exclusão';
+  e('modal-body').innerHTML=`<div style="text-align:center;padding:10px 0"><div style="font-size:44px;margin-bottom:12px">⚠️</div><div style="font-size:15px;font-weight:600;margin-bottom:6px">${item.descricao} — ${fmt(item.valor)}</div><div style="font-size:13px;color:var(--text-l)">Excluir este investimento de ${invMesSel}?</div></div>`;
+  e('modal-save-btn').textContent='🗑️ Excluir';
+  e('modal-save-btn').style.background='#c62828';
+  e('modal-save-btn').style.color='#fff';
+  e('modal-box').dataset.tipo='del-inv-mes';
+  e('modal-box').dataset.delInvId=id;
+  e('overlay').classList.add('open');
+}
+
+function confirmDelInvMes(){
+  const id=e('modal-box').dataset.delInvId;
+  const d=loadData();
+  const arr=d.meses[invMesSel].investimentos;
+  const idx=arr.findIndex(x=>x.id===id);
+  if(idx>=0) arr.splice(idx,1);
+  saveData(d);
+  closeModal();
+  renderInvMes();
+  renderInvestimentos();
+  toast('Investimento excluído!');
 }
 
 // ═══════════════════════════════════════════════
@@ -1988,9 +2122,9 @@ function closeModal(){
   e('overlay').classList.remove('open');
   modalTipo=null;modalEditId=null;
   const box=e('modal-box');
-  if(box){delete box.dataset.tipo;delete box.dataset.editParcelasJson;delete box.dataset.editParcelasTipo;}
+  if(box){delete box.dataset.tipo;delete box.dataset.editParcelasJson;delete box.dataset.editParcelasTipo;delete box.dataset.delTipo;delete box.dataset.delId;delete box.dataset.invEditId;delete box.dataset.delInvId;}
   const btn=e('modal-save-btn');
-  if(btn) btn.textContent='Salvar';
+  if(btn){btn.textContent='Salvar';btn.style.background='';btn.style.color='';}
 }
 function divideModalBtn(label){
   const btn=e('modal-save-btn');
@@ -2007,6 +2141,9 @@ function saveModal(){
   if(dtipo==='divide-rm-membro'){ divideConfirmarRemoverMembro(); return; }
   if(dtipo==='divide-rm-evento'){ divideConfirmarExcluirEvento(); return; }
   if(dtipo==='edit-parcelas'){ saveEditParcelas(); return; }
+  if(dtipo==='del-entry'){ confirmDelEntry(); return; }
+  if(dtipo==='inv-mes'){ saveInvMes(); return; }
+  if(dtipo==='del-inv-mes'){ confirmDelInvMes(); return; }
   if(modalTipo==='metas'){
     const d=loadData();
     MESES.forEach(m=>{ d.metasInvestimento[m]=parseVal(e('meta-'+m)?.value)||0; });
@@ -2070,13 +2207,41 @@ function saveModal(){
 }
 
 function delEntry(tipo,id){
-  if(!confirm('Excluir este registro?')) return;
+  const d=loadData();
+  const m=d.meses[mesSel];
+  const arr=tipo==='gf'?m.gastosFixos:tipo==='gv'?m.gastosVariaveis:tipo==='ent'?m.entradas:m.investimentos;
+  const item=arr.find(x=>x.id===id);
+  if(!item) return;
+  const label=item.descricao||item.categoria||'este registro';
+  const valor=item.valor?` — ${fmt(item.valor)}`:'';
+  e('modal-title').textContent='🗑️ Confirmar Exclusão';
+  e('modal-body').innerHTML=`
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:44px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text)">${label}${valor}</div>
+      <div style="font-size:13px;color:var(--text-l)">Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.</div>
+    </div>
+  `;
+  e('modal-save-btn').textContent='🗑️ Excluir';
+  e('modal-save-btn').style.background='#c62828';
+  e('modal-save-btn').style.color='#fff';
+  e('modal-box').dataset.tipo='del-entry';
+  e('modal-box').dataset.delTipo=tipo;
+  e('modal-box').dataset.delId=id;
+  e('overlay').classList.add('open');
+}
+
+function confirmDelEntry(){
+  const box=e('modal-box');
+  const tipo=box.dataset.delTipo;
+  const id=box.dataset.delId;
   const d=loadData();
   const m=d.meses[mesSel];
   const arr=tipo==='gf'?m.gastosFixos:tipo==='gv'?m.gastosVariaveis:tipo==='ent'?m.entradas:m.investimentos;
   const idx=arr.findIndex(x=>x.id===id);
   if(idx>=0) arr.splice(idx,1);
   saveData(d);
+  closeModal();
   renderMes();
   toast('Excluído!');
 }
@@ -2136,30 +2301,37 @@ function openEditParcelasModal(tipo,id){
     <div style="background:var(--blue-l);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)">
       <strong>${allParcelas.length}</strong> parcela(s) encontrada(s) de <strong>${total}</strong> no total.
     </div>
-    <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text-l)">Alterar campos em todas as parcelas:</div>
-    <div class="frow-half">
-      <div class="frow"><label>Novo Valor (R$)</label><input id="ep-valor" type="text" placeholder="${String(item.valor).replace('.',',')}" value="${String(item.valor).replace('.',',')}"></div>
-      <div class="frow"><label>Categoria</label><select id="ep-cat"><option value="">-- manter --</option>${catOpts}</select></div>
-    </div>
-    <div class="frow"><label>Forma de Pagamento</label><select id="ep-pag"><option value="">-- manter --</option>${pagOpts}</select></div>
-    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-      <div style="font-size:12px;color:var(--text-l);margin-bottom:8px;font-weight:600">PARCELAS ENCONTRADAS:</div>
-      <div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
-        ${allParcelas.map(p=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;background:var(--bg);border-radius:6px;padding:6px 10px">
-            <span style="font-weight:600;color:var(--green-d)">${p.parcela}</span>
-            <span style="color:var(--text-l)">${p.mes} ${p.y}</span>
-            <span style="font-weight:600">${fmt(p.valor)}</span>
-            <span class="td-pago ${p.pago?'sim':'nao'}">${p.pago?'Pago':'Não pago'}</span>
-          </div>
-        `).join('')}
+    <details open style="margin-bottom:14px">
+      <summary style="font-weight:600;font-size:13px;cursor:pointer;color:var(--text-l);margin-bottom:8px;list-style:none;display:flex;align-items:center;gap:6px"><span>⚡</span> Alterar todas de uma vez</summary>
+      <div style="margin-top:10px">
+        <div class="frow-half">
+          <div class="frow"><label>Valor único (R$)</label><input id="ep-valor" type="text" placeholder="Deixe vazio p/ manter"></div>
+          <div class="frow"><label>Categoria</label><select id="ep-cat"><option value="">-- manter --</option>${catOpts}</select></div>
+        </div>
+        <div class="frow"><label>Forma de Pagamento</label><select id="ep-pag"><option value="">-- manter --</option>${pagOpts}</select></div>
       </div>
+    </details>
+    <div style="font-size:12px;color:var(--text-l);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">✏️ Editar cada parcela individualmente</div>
+    <div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px">
+      ${allParcelas.map((p,i)=>`
+        <div style="background:var(--gray);border-radius:8px;padding:10px 12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-weight:700;color:var(--green-d);font-size:13px">${p.parcela}</span>
+            <span style="font-size:12px;color:var(--text-l)">${p.mes} ${p.y}</span>
+            <span class="td-pago ${p.pago?'sim':'nao'}" style="font-size:11px">${p.pago?'✅ Pago':'⬜ Pendente'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:10px;font-weight:600;color:var(--text-l);text-transform:uppercase;white-space:nowrap">Valor (R$)</label>
+            <input type="text" id="ep-ind-${i}" value="${String(p.valor).replace('.',',')}" class="frow-inline-input" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;outline:none">
+          </div>
+        </div>
+      `).join('')}
     </div>
   `;
   e('modal-box').dataset.tipo='edit-parcelas';
-  e('modal-box').dataset.editParcelasJson=JSON.stringify(allParcelas.map(p=>({y:p.y,mes:p.mes,id:p.id})));
+  e('modal-box').dataset.editParcelasJson=JSON.stringify(allParcelas.map((p,i)=>({y:p.y,mes:p.mes,id:p.id,idx:i})));
   e('modal-box').dataset.editParcelasTipo=tipo;
-  e('modal-save-btn').textContent='Atualizar todas as parcelas';
+  e('modal-save-btn').textContent='💾 Salvar parcelas';
   e('overlay').classList.add('open');
 }
 
@@ -2167,9 +2339,11 @@ function saveEditParcelas(){
   const box=e('modal-box');
   const tipo=box.dataset.editParcelasTipo;
   const refs=JSON.parse(box.dataset.editParcelasJson||'[]');
-  const novoValor=parseVal(e('ep-valor')?.value);
+  const bulkValor=parseVal(e('ep-valor')?.value||'');
   const novaCat=e('ep-cat')?.value;
   const novaPag=e('ep-pag')?.value;
+  // Lê valores individuais de cada parcela
+  const indValores=refs.map(r=>parseVal(e(`ep-ind-${r.idx}`)?.value||'')||null);
   // Agrupa refs por ano
   const porAno={};
   refs.forEach(r=>{if(!porAno[r.y])porAno[r.y]=[];porAno[r.y].push(r);});
@@ -2183,7 +2357,10 @@ function saveEditParcelas(){
       const a=tipo==='gf'?fd.meses[r.mes].gastosFixos:fd.meses[r.mes].gastosVariaveis;
       const item=a.find(x=>x.id===r.id);
       if(!item) return;
-      if(novoValor&&novoValor>0) item.valor=novoValor;
+      // Valor individual tem prioridade; fallback para valor em lote
+      const indV=indValores[r.idx];
+      if(indV&&indV>0) item.valor=indV;
+      else if(bulkValor&&bulkValor>0) item.valor=bulkValor;
       if(novaCat) item.categoria=novaCat;
       if(novaPag) item.pagamento=novaPag;
     });
@@ -2774,6 +2951,7 @@ function setSyncStatus(type,msg){
 }
 
 async function syncToCloud(){
+  syncTimeout=null; // Clear pending flag before write
   if(!fbUser||!fbDb) return;
   try{
     const ys=getYears();
@@ -2862,6 +3040,7 @@ function startRealtimeListeners(uid){
   // Listener: anos financeiros
   const anosRef=fbDb.collection('users').doc(uid).collection('anos');
   const unsub2=anosRef.onSnapshot(snap=>{
+    if(syncTimeout) return; // Há alteração local pendente — não sobrescrever
     let changed=false;
     snap.forEach(doc=>{
       const raw=doc.data().data;
