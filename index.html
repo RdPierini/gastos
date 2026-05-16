@@ -91,8 +91,10 @@ tbody td{padding:7px 12px;vertical-align:middle}
 .td-r{text-align:right;font-weight:600;white-space:nowrap}
 .td-center{text-align:center}
 .td-neg{color:var(--red-d)}
-.td-pago{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.td-pago{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;user-select:none}
 .td-pago.sim{background:#e8f5e9;color:#2e7d32}.td-pago.nao{background:#ffebee;color:var(--red-d)}
+.tr-pago td{opacity:.6}
+.tr-pago td:nth-child(2){text-decoration:line-through}
 .btn{padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
 .btn-g{background:var(--green);color:#fff}.btn-g:hover{background:var(--green-d)}
 .btn-outline{background:none;border:1.5px solid var(--green);color:var(--green-d)}
@@ -486,7 +488,7 @@ body.dark .ys-add{border-color:#333}
     <div class="section" style="display:flex;flex-direction:column">
       <div class="sec-title" style="margin-bottom:12px">📈 Entradas vs Saídas por Mês</div>
       <div class="chart-wrap"><canvas id="chart-anual"></canvas></div>
-      <div id="dash-anual-stats" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;flex:1"></div>
+      <div id="dash-anual-stats" style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
     </div>
     <div class="section">
       <div class="sec-title" style="margin-bottom:12px">🗓️ Navegação por Mês</div>
@@ -543,6 +545,7 @@ body.dark .ys-add{border-color:#333}
     <div class="section">
       <div class="sec-title" style="margin-bottom:10px">💳 Formas de Pagamento</div>
       <div class="pay-grid" id="pay-grid"></div>
+      <div class="chart-wrap" style="height:200px;margin-top:14px"><canvas id="chart-pay"></canvas></div>
     </div>
     <div class="section">
       <div class="sec-title" style="margin-bottom:10px">📊 Gastos por Categoria</div>
@@ -551,7 +554,7 @@ body.dark .ys-add{border-color:#333}
   </div>
   <div class="section">
     <div class="sec-title" style="margin-bottom:10px">📊 Gráfico de Categorias</div>
-    <div class="chart-wrap" style="height:240px"><canvas id="chart-cat"></canvas></div>
+    <div class="chart-wrap" style="height:260px"><canvas id="chart-cat"></canvas></div>
   </div>
 </div>
 
@@ -1069,7 +1072,27 @@ function goMes(mes){
 function navMes(dir){
   const idx=MESES.indexOf(mesSel);
   const ni=idx+dir;
-  if(ni>=0 && ni<12) goMes(MESES[ni]);
+  if(ni>=0 && ni<12){
+    goMes(MESES[ni]);
+  } else if(ni<0){
+    const prevAno=ano-1;
+    let ys=getYears();
+    if(!ys.includes(prevAno)){
+      if(!confirm(`Ir para ${prevAno}? O ano ainda não existe e será criado.`)) return;
+      ys.push(prevAno); ys.sort(); saveYears(ys);
+      localStorage.setItem(sKey(prevAno),JSON.stringify(createEmptyYear()));
+    }
+    ano=prevAno; renderYearSel(); goMes('Dezembro');
+  } else {
+    const nextAno=ano+1;
+    let ys=getYears();
+    if(!ys.includes(nextAno)){
+      if(!confirm(`Ir para ${nextAno}? O ano ainda não existe e será criado.`)) return;
+      ys.push(nextAno); ys.sort(); saveYears(ys);
+      localStorage.setItem(sKey(nextAno),JSON.stringify(createEmptyYear()));
+    }
+    ano=nextAno; renderYearSel(); goMes('Janeiro');
+  }
 }
 
 function selTab(t){
@@ -1144,16 +1167,24 @@ function renderAnualStats(d){
   const melhorMes=mesesDados.reduce((a,b)=>b.c.saldo>a.c.saldo?b:a);
   const piorMes=mesesDados.reduce((a,b)=>b.c.saldo<a.c.saldo?b:a);
   const maiorGasto=mesesDados.reduce((a,b)=>b.c.saidas>a.c.saidas?b:a);
-  const stat=(ico,label,valor,cor)=>`
-    <div style="background:var(--bg);border-radius:10px;padding:12px;text-align:center;border-top:3px solid ${cor}">
-      <div style="font-size:20px;margin-bottom:4px">${ico}</div>
-      <div style="font-size:10px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${label}</div>
-      <div style="font-size:13px;font-weight:700;color:${cor}">${valor}</div>
+  const maiorEnt=mesesDados.reduce((a,b)=>b.c.ent>a.c.ent?b:a);
+  const maiorInv=mesesDados.reduce((a,b)=>b.c.inv>a.c.inv?b:a);
+  const mediaMensal=mesesDados.reduce((s,x)=>s+x.c.saidas,0)/mesesDados.length;
+  const stat=(ico,label,titulo,sub,cor)=>`
+    <div style="background:var(--bg);border-radius:10px;padding:12px 10px;text-align:center;border-top:3px solid ${cor}">
+      <div style="font-size:18px;margin-bottom:3px">${ico}</div>
+      <div style="font-size:9px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${label}</div>
+      <div style="font-size:13px;font-weight:700;color:${cor};line-height:1.2">${titulo}</div>
+      ${sub?`<div style="font-size:11px;color:var(--text-l);margin-top:2px">${sub}</div>`:''}
     </div>`;
+  el.style.gridTemplateColumns='1fr 1fr 1fr';
   el.innerHTML=
-    stat('🏆','Melhor Mês',melhorMes.m,melhorMes.c.saldo>=0?'#2e7d32':'#c62828')+
-    stat('⚠️','Pior Mês',piorMes.m,'#c62828')+
-    stat('💸','Mais Gastos',maiorGasto.m,'#e65100');
+    stat('🏆','Melhor Saldo',melhorMes.m,fmtSigned(melhorMes.c.saldo),melhorMes.c.saldo>=0?'#2e7d32':'#c62828')+
+    stat('⚠️','Pior Saldo',piorMes.m,fmtSigned(piorMes.c.saldo),'#c62828')+
+    stat('💸','Mais Gastos',maiorGasto.m,fmt(maiorGasto.c.saidas),'#e65100')+
+    stat('💰','Maior Entrada',maiorEnt.m,fmt(maiorEnt.c.ent),'#1565c0')+
+    stat('🏦','Mais Investido',maiorInv.c.inv>0?maiorInv.m:'—',maiorInv.c.inv>0?fmt(maiorInv.c.inv):'Sem dados','#6a1b9a')+
+    stat('📊','Média de Gastos',fmt(mediaMensal),`em ${mesesDados.length} meses`,'#00695c');
 }
 
 function renderChartAnual(d){
@@ -1279,25 +1310,26 @@ function renderTbl(tipo){
   e('tbl-'+tipo).innerHTML=`<table>
     <thead><tr>
       <th>Categoria</th><th>Descrição</th><th>Data</th><th>Parcela</th><th>Pagamento</th><th>Valor</th>
-      ${tipo==='gf'?'<th>Pago?</th>':''}
+      <th>Pago?</th>
       <th>Ações</th>
     </tr></thead>
     <tbody>
-      ${arr.map(x=>`<tr>
+      ${arr.map(x=>`<tr class="${x.pago?'tr-pago':''}">
         <td>${x.categoria}</td>
         <td>${x.descricao}</td>
         <td>${x.data}</td>
         <td style="text-align:center">${x.parcela||'-'}</td>
         <td>${x.pagamento||'-'}</td>
         <td class="td-r">${fmt(x.valor)}</td>
-        ${tipo==='gf'?`<td class="td-center"><span class="td-pago ${x.pago?'sim':'nao'}">${x.pago?'Sim':'Não'}</span></td>`:''}
+        <td class="td-center"><span class="td-pago ${x.pago?'sim':'nao'}" style="cursor:pointer" onclick="togglePago('${tipo}','${x.id}')" title="Clique para alternar">${x.pago?'✅ Sim':'⬜ Não'}</span></td>
         <td class="td-center">
           <button class="btn-icon btn-edit" onclick="openModal('${tipo}','${x.id}')" title="Editar">✏️</button>
+          ${x.parcela&&x.parcela.match(/^\d+\/\d+$/)?`<button class="btn-icon" onclick="openEditParcelasModal('${tipo}','${x.id}')" title="Editar todas as parcelas" style="font-size:13px">📋</button>`:''}
           <button class="btn-icon btn-del" onclick="delEntry('${tipo}','${x.id}')" title="Excluir">🗑️</button>
         </td>
       </tr>`).join('')}
       <tr style="background:var(--green-l)">
-        <td colspan="${tipo==='gf'?7:6}" style="font-weight:700">Total</td>
+        <td colspan="7" style="font-weight:700">Total</td>
         <td class="td-r" style="font-weight:700">${fmt(total)}</td>
         <td></td>
       </tr>
@@ -1378,10 +1410,41 @@ function renderInv(){
 function renderPayGrid(d,mes){
   const pags=calcPagamentos(d,mes);
   const entries=Object.entries(pags).sort((a,b)=>b[1]-a[1]);
-  if(!entries.length){ e('pay-grid').innerHTML='<p style="color:var(--text-l);font-size:13px">Sem dados de pagamento.</p>'; return; }
+  if(!entries.length){
+    e('pay-grid').innerHTML='<p style="color:var(--text-l);font-size:13px">Sem dados de pagamento.</p>';
+    if(charts.pay){charts.pay.destroy();charts.pay=null;}
+    return;
+  }
+  const total=entries.reduce((s,[,v])=>s+v,0);
   e('pay-grid').innerHTML=entries.map(([p,v])=>`
-    <div class="pay-item"><span class="pay-name">${p}</span><span class="pay-val">${fmt(v)}</span></div>
+    <div class="pay-item"><span class="pay-name">${p}</span><span class="pay-val">${fmt(v)} <small style="opacity:.65">(${(v/total*100).toFixed(0)}%)</small></span></div>
   `).join('');
+  // Gráfico de pizza
+  if(typeof Chart==='undefined') return;
+  const payColors=['#9fc5e8','#93c47d','#ea9999','#f9cb9c','#b4a7d6','#76a5af','#d5a6bd','#ffe599'];
+  if(charts.pay) charts.pay.destroy();
+  const ctx=e('chart-pay')?.getContext('2d');
+  if(!ctx) return;
+  charts.pay=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:entries.map(([p])=>p),
+      datasets:[{data:entries.map(([,v])=>v),backgroundColor:payColors.slice(0,entries.length),borderWidth:2}]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}},
+        datalabels:{
+          color:'#fff',
+          font:{weight:'bold',size:10},
+          display:(ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return s>0&&(ctx.dataset.data[ctx.dataIndex]/s)>0.05;},
+          formatter:(v,ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return(v/s*100).toFixed(0)+'%';}
+        }
+      }
+    }
+  });
 }
 
 function renderCatList(d,mes){
@@ -1407,6 +1470,7 @@ function renderChartCat(d,mes){
   if(!entries.length) return;
 
   const colors=['#93c47d','#ea9999','#9fc5e8','#f9cb9c','#b4a7d6','#76a5af','#d5a6bd','#ffe599','#a2c4c9','#ffd966'];
+  const isMobile=window.innerWidth<600;
 
   if(charts.cat) charts.cat.destroy();
   const ctx=e('chart-cat').getContext('2d');
@@ -1416,7 +1480,37 @@ function renderChartCat(d,mes){
       labels:entries.map(([c])=>c),
       datasets:[{data:entries.map(([,v])=>v),backgroundColor:colors.slice(0,entries.length),borderWidth:2}]
     },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11}}},datalabels:{color:'#fff',font:{weight:'bold',size:11},display:(ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return s>0&&(ctx.dataset.data[ctx.dataIndex]/s)>0.04;},formatter:(v,ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return(v/s*100).toFixed(1)+'%';}}}}
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          position:isMobile?'bottom':'right',
+          labels:{
+            font:{size:isMobile?10:11},
+            boxWidth:isMobile?10:12,
+            padding:isMobile?6:10,
+            generateLabels:(chart)=>{
+              const ds=chart.data;
+              const total=ds.datasets[0].data.reduce((a,b)=>a+b,0);
+              return ds.labels.map((label,i)=>({
+                text:isMobile?`${label.length>12?label.slice(0,12)+'…':label} ${(ds.datasets[0].data[i]/total*100).toFixed(0)}%`:label,
+                fillStyle:ds.datasets[0].backgroundColor[i],
+                strokeStyle:'#fff',
+                lineWidth:1,
+                index:i
+              }));
+            }
+          }
+        },
+        datalabels:{
+          color:'#fff',
+          font:{weight:'bold',size:isMobile?9:11},
+          display:(ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return s>0&&(ctx.dataset.data[ctx.dataIndex]/s)>0.06;},
+          formatter:(v,ctx)=>{const s=ctx.dataset.data.reduce((a,b)=>a+b,0);return(v/s*100).toFixed(1)+'%';}
+        }
+      }
+    }
   });
 }
 
@@ -1870,7 +1964,7 @@ function openModal(tipo,editId){
         <div class="frow"><label>Pagamento</label><select id="f-pag"><option value="">Selecione...</option>${pagOpts}</select></div>
         <div class="frow"><label>Valor (R$)</label><input id="f-valor" type="text" value="${item?String(item.valor).replace('.',','):''}" placeholder="0,00"></div>
       </div>
-      ${tipo==='gf'?`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer" onclick="document.getElementById('f-pago').click()"><input type="checkbox" id="f-pago" ${item&&item.pago?'checked':''} onclick="event.stopPropagation()"><span style="font-size:14px;font-weight:500;color:var(--text)">Já pago?</span></div>`:''}
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer" onclick="document.getElementById('f-pago').click()"><input type="checkbox" id="f-pago" ${item&&item.pago?'checked':''} onclick="event.stopPropagation()"><span style="font-size:14px;font-weight:500;color:var(--text)">Já pago?</span></div>
     `;
   } else if(tipo==='ent'){
     body=`
@@ -1893,7 +1987,8 @@ function openModal(tipo,editId){
 function closeModal(){
   e('overlay').classList.remove('open');
   modalTipo=null;modalEditId=null;
-  if(e('modal-box')) delete e('modal-box').dataset.tipo;
+  const box=e('modal-box');
+  if(box){delete box.dataset.tipo;delete box.dataset.editParcelasJson;delete box.dataset.editParcelasTipo;}
   const btn=e('modal-save-btn');
   if(btn) btn.textContent='Salvar';
 }
@@ -1911,6 +2006,7 @@ function saveModal(){
   if(dtipo==='divide-membro'){ divideSalvarMembro(); return; }
   if(dtipo==='divide-rm-membro'){ divideConfirmarRemoverMembro(); return; }
   if(dtipo==='divide-rm-evento'){ divideConfirmarExcluirEvento(); return; }
+  if(dtipo==='edit-parcelas'){ saveEditParcelas(); return; }
   if(modalTipo==='metas'){
     const d=loadData();
     MESES.forEach(m=>{ d.metasInvestimento[m]=parseVal(e('meta-'+m)?.value)||0; });
@@ -1934,7 +2030,7 @@ function saveModal(){
     const valor=parseVal(e('f-valor')?.value);
     if(!cat||!desc||!valor&&valor!==0){toast('Preencha categoria, descrição e valor');return;}
     entry={categoria:cat,descricao:desc,data:data||'',parcela:parcela||'',pagamento:pag||'',valor:Math.abs(valor)};
-    if(tipo==='gf') entry.pago=e('f-pago')?.checked||false;
+    entry.pago=e('f-pago')?.checked||false;
   } else if(tipo==='ent'){
     const desc=e('f-desc')?.value?.trim();
     const data=e('f-data')?.value?.trim();
@@ -1983,6 +2079,120 @@ function delEntry(tipo,id){
   saveData(d);
   renderMes();
   toast('Excluído!');
+}
+
+function togglePago(tipo,id){
+  const d=loadData();
+  const m=d.meses[mesSel];
+  const arr=tipo==='gf'?m.gastosFixos:m.gastosVariaveis;
+  const item=arr.find(x=>x.id===id);
+  if(!item) return;
+  item.pago=!item.pago;
+  saveData(d);
+  renderMes();
+  toast(item.pago?'Marcado como pago ✅':'Desmarcado ⬜');
+}
+
+// ═══════════════════════════════════════════════
+// EDITAR PARCELAS EM LOTE
+// ═══════════════════════════════════════════════
+function openEditParcelasModal(tipo,id){
+  const d=loadData();
+  const m=d.meses[mesSel];
+  const arr=tipo==='gf'?m.gastosFixos:m.gastosVariaveis;
+  const item=arr.find(x=>x.id===id);
+  if(!item||!item.parcela) return;
+  const pm=item.parcela.match(/^(\d+)\/(\d+)$/);
+  if(!pm) return;
+  const total=+pm[2];
+  const desc=item.descricao;
+  // Coleta todas as parcelas relacionadas em todos os anos
+  const allParcelas=[];
+  const ys=getYears();
+  ys.forEach(y=>{
+    const key=sKey(y);
+    const raw=localStorage.getItem(key);
+    if(!raw) return;
+    const fd=JSON.parse(raw);
+    MESES.forEach(mes=>{
+      const a=tipo==='gf'?fd.meses[mes].gastosFixos:fd.meses[mes].gastosVariaveis;
+      a.forEach(x=>{
+        if(x.descricao===desc && x.parcela && x.parcela.match(/^\d+\/\d+$/)){
+          const xpm=x.parcela.match(/^(\d+)\/(\d+)$/);
+          if(xpm&&+xpm[2]===total) allParcelas.push({y,mes,id:x.id,parcela:x.parcela,valor:x.valor,categoria:x.categoria,pagamento:x.pagamento,pago:x.pago});
+        }
+      });
+    });
+  });
+  allParcelas.sort((a,b)=>{
+    const an=+a.parcela.split('/')[0], bn=+b.parcela.split('/')[0]; return an-bn;
+  });
+  const cats=d.categorias;
+  const pags=d.pagamentos;
+  const catOpts=cats.map(c=>`<option ${item.categoria===c?'selected':''}>${c}</option>`).join('');
+  const pagOpts=pags.map(p=>`<option ${item.pagamento===p?'selected':''}>${p}</option>`).join('');
+  e('modal-title').textContent=`📋 Editar Parcelas — ${desc}`;
+  e('modal-body').innerHTML=`
+    <div style="background:var(--blue-l);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)">
+      <strong>${allParcelas.length}</strong> parcela(s) encontrada(s) de <strong>${total}</strong> no total.
+    </div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text-l)">Alterar campos em todas as parcelas:</div>
+    <div class="frow-half">
+      <div class="frow"><label>Novo Valor (R$)</label><input id="ep-valor" type="text" placeholder="${String(item.valor).replace('.',',')}" value="${String(item.valor).replace('.',',')}"></div>
+      <div class="frow"><label>Categoria</label><select id="ep-cat"><option value="">-- manter --</option>${catOpts}</select></div>
+    </div>
+    <div class="frow"><label>Forma de Pagamento</label><select id="ep-pag"><option value="">-- manter --</option>${pagOpts}</select></div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:12px;color:var(--text-l);margin-bottom:8px;font-weight:600">PARCELAS ENCONTRADAS:</div>
+      <div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+        ${allParcelas.map(p=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;background:var(--bg);border-radius:6px;padding:6px 10px">
+            <span style="font-weight:600;color:var(--green-d)">${p.parcela}</span>
+            <span style="color:var(--text-l)">${p.mes} ${p.y}</span>
+            <span style="font-weight:600">${fmt(p.valor)}</span>
+            <span class="td-pago ${p.pago?'sim':'nao'}">${p.pago?'Pago':'Não pago'}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  e('modal-box').dataset.tipo='edit-parcelas';
+  e('modal-box').dataset.editParcelasJson=JSON.stringify(allParcelas.map(p=>({y:p.y,mes:p.mes,id:p.id})));
+  e('modal-box').dataset.editParcelasTipo=tipo;
+  e('modal-save-btn').textContent='Atualizar todas as parcelas';
+  e('overlay').classList.add('open');
+}
+
+function saveEditParcelas(){
+  const box=e('modal-box');
+  const tipo=box.dataset.editParcelasTipo;
+  const refs=JSON.parse(box.dataset.editParcelasJson||'[]');
+  const novoValor=parseVal(e('ep-valor')?.value);
+  const novaCat=e('ep-cat')?.value;
+  const novaPag=e('ep-pag')?.value;
+  // Agrupa refs por ano
+  const porAno={};
+  refs.forEach(r=>{if(!porAno[r.y])porAno[r.y]=[];porAno[r.y].push(r);});
+  Object.entries(porAno).forEach(([y,rs])=>{
+    y=+y;
+    const key=sKey(y);
+    const raw=localStorage.getItem(key);
+    if(!raw) return;
+    const fd=JSON.parse(raw);
+    rs.forEach(r=>{
+      const a=tipo==='gf'?fd.meses[r.mes].gastosFixos:fd.meses[r.mes].gastosVariaveis;
+      const item=a.find(x=>x.id===r.id);
+      if(!item) return;
+      if(novoValor&&novoValor>0) item.valor=novoValor;
+      if(novaCat) item.categoria=novaCat;
+      if(novaPag) item.pagamento=novaPag;
+    });
+    localStorage.setItem(key,JSON.stringify(fd));
+  });
+  scheduleSync();
+  closeModal();
+  renderMes();
+  toast(`${refs.length} parcela(s) atualizada(s)!`);
 }
 
 // ═══════════════════════════════════════════════
@@ -2058,8 +2268,7 @@ function createAutoParCelas(tipo,template,parAtual,parTotal){
     let fd=localStorage.getItem(key);
     fd=fd?JSON.parse(fd):createEmptyYear();
     itens.forEach(({futMes,par,data})=>{
-      const entry={...template,id:uid(),parcela:par,data};
-      if(tipo==='gf') entry.pago=false;
+      const entry={...template,id:uid(),parcela:par,data,pago:false};
       (tipo==='gf'?fd.meses[futMes].gastosFixos:fd.meses[futMes].gastosVariaveis).push(entry);
     });
     localStorage.setItem(key,JSON.stringify(fd));
