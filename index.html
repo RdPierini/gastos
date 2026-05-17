@@ -671,10 +671,18 @@ body.dark .ys-add{border-color:#333}
 
 <!-- SAÚDE FINANCEIRA -->
 <div id="page-saude" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <!-- Abas Anual / Mensal -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
     <h2 style="font-size:22px;font-weight:800">❤️ Saúde Financeira <span id="saude-ano" style="color:var(--text-l);font-weight:400;font-size:16px"></span></h2>
+    <div style="display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0">
+      <button id="saude-tab-anual" onclick="saudeMudarAba('anual')" style="padding:6px 16px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:var(--green);color:#fff">📅 Anual</button>
+      <button id="saude-tab-mensal" onclick="saudeMudarAba('mensal')" style="padding:6px 16px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:none;color:var(--text-l)">🗓️ Mensal</button>
+    </div>
   </div>
-  <div class="hgrid" id="saude-metrics"></div>
+
+  <!-- Visão ANUAL -->
+  <div id="saude-view-anual">
+    <div class="hgrid" id="saude-metrics"></div>
   <div class="grid2" style="margin-bottom:20px">
     <div class="section">
       <div class="sec-title" style="margin-bottom:14px">🎯 Score de Saúde</div>
@@ -693,10 +701,42 @@ body.dark .ys-add{border-color:#333}
     <div class="sec-title" style="margin-bottom:14px">📈 Evolução Mensal</div>
     <div class="chart-wrap" style="height:240px"><canvas id="chart-evolucao"></canvas></div>
   </div>
-  <div class="section">
-    <div class="sec-title" style="margin-bottom:14px">💡 Alertas & Recomendações</div>
-    <div class="alertas" id="alertas-list"></div>
-  </div>
+    <div class="section">
+      <div class="sec-title" style="margin-bottom:14px">💡 Alertas & Recomendações</div>
+      <div class="alertas" id="alertas-list"></div>
+    </div>
+  </div><!-- /saude-view-anual -->
+
+  <!-- Visão MENSAL -->
+  <div id="saude-view-mensal" style="display:none">
+    <div class="sec-header" style="margin-bottom:16px">
+      <h3 id="saude-mes-titulo" style="font-size:18px;font-weight:700"></h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="navSaudeMes(-1)">◀ Anterior</button>
+        <button class="btn btn-outline btn-sm" onclick="navSaudeMes(1)">Próximo ▶</button>
+      </div>
+    </div>
+    <div class="cards" id="saude-mes-cards" style="margin-bottom:20px"></div>
+    <div class="hgrid" id="saude-mes-metrics"></div>
+    <div class="grid2" style="margin-bottom:20px;margin-top:20px">
+      <div class="section">
+        <div class="sec-title" style="margin-bottom:14px">🎯 Score do Mês</div>
+        <div class="score-wrap">
+          <canvas id="chart-score-mes" width="180" height="180"></canvas>
+          <div class="score-big" id="score-mes-num"></div>
+          <div class="score-sub" id="score-mes-label"></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="sec-title" style="margin-bottom:14px">⚖️ Regra 50/30/20</div>
+        <div class="rule5020" id="rule-cards-mes"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="sec-title" style="margin-bottom:14px">💡 Alertas do Mês</div>
+      <div class="alertas" id="alertas-mes-list"></div>
+    </div>
+  </div><!-- /saude-view-mensal -->
 </div>
 
 </main>
@@ -875,6 +915,8 @@ const DADOS_2026 = {
 let ano = 2026;
 let mesSel = 'Janeiro';
 let invMesSel = null;
+let saudeAba = 'anual';
+let saudeMesSel = null;
 let tabAtiva = 'gf';
 let modalTipo = null;
 let modalEditId = null;
@@ -1121,7 +1163,8 @@ function selTab(t){
 
 function changeYear(y){
   ano=+y;
-  invMesSel=null; // reset mês de investimento ao trocar de ano
+  invMesSel=null;
+  saudeMesSel=null;
   const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
   renderYearSel();
   if(curActive.includes('mes')) renderMes();
@@ -1336,7 +1379,10 @@ function renderTbl(tipo){
         <td>${x.data}</td>
         <td style="text-align:center">${x.parcela||'-'}</td>
         <td>${x.pagamento||'-'}</td>
-        <td class="td-r">${fmt(x.valor)}</td>
+        <td class="td-r ${x.valor<0?'pos':''}">
+          ${x.valor<0?`<span title="Estorno/crédito" style="font-size:10px;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 4px;margin-right:3px">↩</span>`:''}
+          ${x.valor<0?fmtSigned(x.valor):fmt(x.valor)}
+        </td>
         <td class="td-center"><span class="td-pago ${x.pago?'sim':'nao'}" style="cursor:pointer" onclick="togglePago('${tipo}','${x.id}')" title="Clique para alternar">${x.pago?'✅ Sim':'⬜ Não'}</span></td>
         <td class="td-center" style="white-space:nowrap">
           <button class="btn-icon btn-edit" onclick="openModal('${tipo}','${x.id}')" title="Editar">✏️</button>
@@ -1346,7 +1392,7 @@ function renderTbl(tipo){
       </tr>`).join('')}
       <tr style="background:var(--green-l)">
         <td colspan="7" style="font-weight:700">Total</td>
-        <td class="td-r" style="font-weight:700">${fmt(total)}</td>
+        <td class="td-r ${total<0?'pos':''}" style="font-weight:700">${total<0?fmtSigned(total):fmt(total)}</td>
         <td></td>
       </tr>
     </tbody>
@@ -1438,6 +1484,7 @@ function renderPayGrid(d,mes){
   // Gráfico de pizza
   if(typeof Chart==='undefined') return;
   const payColors=['#1e88e5','#43a047','#e53935','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41','#039be5','#d81b60'];
+  const isDarkPay=document.body.classList.contains('dark');
   if(charts.pay) charts.pay.destroy();
   const ctx=e('chart-pay')?.getContext('2d');
   if(!ctx) return;
@@ -1445,13 +1492,13 @@ function renderPayGrid(d,mes){
     type:'doughnut',
     data:{
       labels:entries.map(([p])=>p),
-      datasets:[{data:entries.map(([,v])=>v),backgroundColor:payColors.slice(0,entries.length),borderWidth:2}]
+      datasets:[{data:entries.map(([,v])=>v),backgroundColor:payColors.slice(0,entries.length),borderWidth:2,borderColor:isDarkPay?'#1e1e1e':'#fff'}]
     },
     options:{
       responsive:true,
       maintainAspectRatio:false,
       plugins:{
-        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}},
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6,color:isDarkPay?'#e0e0e0':'#333'}},
         datalabels:{
           color:'#fff',
           font:{weight:'bold',size:10},
@@ -1488,6 +1535,9 @@ function renderChartCat(d,mes){
   const paletteBase=['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41','#039be5','#c0ca33','#00897b','#d81b60'];
   const palette=entries.map((_,i)=>paletteBase[i%paletteBase.length]);
   const isMobile=window.innerWidth<600;
+  const isDark=document.body.classList.contains('dark');
+  const legendColor=isDark?'#e0e0e0':'#333';
+  const borderCol=isDark?'#1e1e1e':'#fff';
 
   if(charts.cat) charts.cat.destroy();
   const ctx=e('chart-cat').getContext('2d');
@@ -1495,7 +1545,7 @@ function renderChartCat(d,mes){
     type:'doughnut',
     data:{
       labels:entries.map(([c])=>c),
-      datasets:[{data:entries.map(([,v])=>v),backgroundColor:palette,borderWidth:2,borderColor:'#fff'}]
+      datasets:[{data:entries.map(([,v])=>v),backgroundColor:palette,borderWidth:2,borderColor:borderCol}]
     },
     options:{
       responsive:true,
@@ -1507,7 +1557,7 @@ function renderChartCat(d,mes){
             font:{size:isMobile?10:11},
             boxWidth:isMobile?10:14,
             padding:isMobile?5:10,
-            color:'var(--text)'
+            color:legendColor
           }
         },
         datalabels:{
@@ -1717,6 +1767,14 @@ function confirmDelInvMes(){
 // RENDER SAÚDE FINANCEIRA
 // ═══════════════════════════════════════════════
 function renderSaude(){
+  if(!saudeMesSel) saudeMesSel=mesSel;
+  // Aplica estado das abas
+  e('saude-view-anual').style.display=saudeAba==='anual'?'':'none';
+  e('saude-view-mensal').style.display=saudeAba==='mensal'?'':'none';
+  const btnA=e('saude-tab-anual'), btnM=e('saude-tab-mensal');
+  if(btnA){btnA.style.background=saudeAba==='anual'?'var(--green)':'none';btnA.style.color=saudeAba==='anual'?'#fff':'var(--text-l)';}
+  if(btnM){btnM.style.background=saudeAba==='mensal'?'var(--green)':'none';btnM.style.color=saudeAba==='mensal'?'#fff':'var(--text-l)';}
+  if(saudeAba==='mensal'){renderSaudeMensal();return;}
   const d=loadData();
   const s=calcAno(d);
   e('saude-ano').textContent=ano;
@@ -1868,6 +1926,153 @@ function renderSaude(){
 
   const icos={ok:'✅',warn:'⚠️',bad:'🚨'};
   e('alertas-list').innerHTML=al.map(a=>`<div class="alerta ${a.t}"><span class="alerta-ico">${icos[a.t]}</span><span>${a.m}</span></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SAÚDE MENSAL
+// ═══════════════════════════════════════════════
+
+function saudeMudarAba(aba){
+  saudeAba=aba;
+  e('saude-view-anual').style.display=aba==='anual'?'':'none';
+  e('saude-view-mensal').style.display=aba==='mensal'?'':'none';
+  const btnA=e('saude-tab-anual'), btnM=e('saude-tab-mensal');
+  if(btnA){btnA.style.background=aba==='anual'?'var(--green)':'none';btnA.style.color=aba==='anual'?'#fff':'var(--text-l)';}
+  if(btnM){btnM.style.background=aba==='mensal'?'var(--green)':'none';btnM.style.color=aba==='mensal'?'#fff':'var(--text-l)';}
+  if(aba==='mensal'){
+    if(!saudeMesSel) saudeMesSel=mesSel;
+    renderSaudeMensal();
+  }
+}
+
+function navSaudeMes(dir){
+  const idx=MESES.indexOf(saudeMesSel);
+  const ni=idx+dir;
+  saudeMesSel=ni>=0&&ni<12?MESES[ni]:ni<0?'Dezembro':'Janeiro';
+  renderSaudeMensal();
+}
+
+function renderSaudeMensal(){
+  if(!saudeMesSel) saudeMesSel=mesSel;
+  const d=loadData();
+  const c=calcMes(d,saudeMesSel);
+  const temDados=c.ent>0||c.saidas>0;
+  e('saude-mes-titulo').textContent=`🗓️ ${saudeMesSel} ${ano}`;
+
+  // KPI cards do mês
+  const comprMes=c.ent>0?(c.saidas/c.ent*100).toFixed(1)+'%':'—';
+  const taxaMes=c.ent>0?(c.inv/c.ent*100).toFixed(1)+'%':'—';
+  e('saude-mes-cards').innerHTML=`
+    <div class="card green"><div class="card-label">💰 Entradas</div><div class="card-value">${fmt(c.ent)}</div></div>
+    <div class="card red"><div class="card-label">💸 Saídas</div><div class="card-value">${fmt(c.saidas)}</div></div>
+    <div class="card blue"><div class="card-label">🏦 Investido</div><div class="card-value">${fmt(c.inv)}</div></div>
+    <div class="card ${c.saldo>=0?'teal':'red'}"><div class="card-label">💲 Saldo</div><div class="card-value">${fmtSigned(c.saldo)}</div></div>
+    <div class="card indigo"><div class="card-label">📊 % Comprometido</div><div class="card-value">${comprMes}</div></div>
+    <div class="card ${c.inv>0?'orange':'gray'}"><div class="card-label">📈 Taxa Poupança</div><div class="card-value">${taxaMes}</div></div>
+  `;
+
+  // Score mensal
+  const taxaPoupM=c.ent>0?c.inv/c.ent*100:0;
+  const comprM=c.ent>0?c.saidas/c.ent*100:0;
+  let scoreM=0;
+  if(temDados){
+    if(taxaPoupM>=20) scoreM+=30; else if(taxaPoupM>=10) scoreM+=20; else if(taxaPoupM>=5) scoreM+=10;
+    if(comprM<=50) scoreM+=25; else if(comprM<=60) scoreM+=20; else if(comprM<=70) scoreM+=15; else if(comprM<=80) scoreM+=10; else if(comprM<=90) scoreM+=5;
+    if(c.saldo>=0) scoreM+=20; else scoreM-=20;
+    if(c.inv>0) scoreM+=15;
+    if(comprM>100) scoreM-=15;
+    if(comprM>120) scoreM-=15;
+    scoreM=Math.max(0,Math.min(100,scoreM));
+  }
+  const sCm=scoreM>=90?'#2e7d32':scoreM>=80?'#43a047':scoreM>=60?'#f9a825':scoreM>=40?'#ef6c00':'#c62828';
+  const sLm=scoreM>=90?'Excelente 💚':scoreM>=80?'Bom 🟢':scoreM>=60?'Regular 🟡':scoreM>=40?'Atenção 🟠':'Crítico 🔴';
+  if(charts.scoreMes) charts.scoreMes.destroy();
+  const ctxSm=e('chart-score-mes')?.getContext('2d');
+  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,'#f0f0f0'],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}}}});
+  if(!temDados){
+    e('score-mes-num').innerHTML=`<span style="color:#aaa;font-size:22px">—</span>`;
+    e('score-mes-label').textContent='Sem dados neste mês';
+  } else {
+    e('score-mes-num').innerHTML=`<span style="color:${sCm}">${scoreM}<small style="font-size:16px;font-weight:400">/100</small></span>`;
+    e('score-mes-label').textContent=sLm;
+  }
+
+  // Métricas mensais
+  const clamp=v=>Math.min(100,v);
+  const fixVarPct=c.saidas>0?c.gf/c.saidas*100:0;
+  e('saude-mes-metrics').innerHTML=`
+    <div class="hcard"><div class="hcard-ico">💰</div><div class="hcard-body">
+      <div class="hcard-lbl">Taxa de Poupança</div>
+      <div class="hcard-val" style="color:${taxaPoupM>=20?'#2e7d32':taxaPoupM>=10?'#e65100':'#c62828'}">${taxaPoupM.toFixed(1)}%</div>
+      <div class="hcard-bar"><div class="hcard-fill" style="width:${clamp(taxaPoupM/30*100)}%;background:${taxaPoupM>=20?'#4caf50':'#ffa726'}"></div></div>
+      <div class="hcard-note">Ideal: ≥ 20% · Investido: ${fmt(c.inv)}</div>
+    </div></div>
+    <div class="hcard"><div class="hcard-ico">📊</div><div class="hcard-body">
+      <div class="hcard-lbl">Comprometimento</div>
+      <div class="hcard-val" style="color:${comprM<=70?'#2e7d32':comprM<=85?'#e65100':'#c62828'}">${comprM.toFixed(1)}%</div>
+      <div class="hcard-bar"><div class="hcard-fill" style="width:${clamp(comprM)}%;background:${comprM<=70?'#4caf50':comprM<=85?'#ffa726':'#ef5350'}"></div></div>
+      <div class="hcard-note">Ideal: ≤ 70% — ${comprM<=70?'dentro ✅':'acima ⚠️'} do limite</div>
+    </div></div>
+    <div class="hcard"><div class="hcard-ico">💲</div><div class="hcard-body">
+      <div class="hcard-lbl">Saldo do Mês</div>
+      <div class="hcard-val" style="color:${c.saldo>=0?'#2e7d32':'#c62828'}">${fmtSigned(c.saldo)}</div>
+      <div class="hcard-bar"><div class="hcard-fill" style="width:${c.ent>0?clamp(Math.abs(c.saldo)/c.ent*100):0}%;background:${c.saldo>=0?'#4caf50':'#ef5350'}"></div></div>
+      <div class="hcard-note">${c.saldo>=0?'Fechou no positivo ✅':'Fechou no negativo ⚠️'}</div>
+    </div></div>
+    <div class="hcard"><div class="hcard-ico">💸</div><div class="hcard-body">
+      <div class="hcard-lbl">Fixo vs Variável</div>
+      <div class="hcard-val">${c.saidas>0?fixVarPct.toFixed(0)+'% fixo':'—'}</div>
+      <div class="hcard-bar"><div class="hcard-fill" style="width:${c.saidas>0?clamp(fixVarPct):0}%;background:#ea9999"></div></div>
+      <div class="hcard-note">GF: ${fmt(c.gf)} · GV: ${fmt(c.gv)}</div>
+    </div></div>
+  `;
+
+  // Regra 50/30/20 mensal
+  const needsM=c.ent>0?c.gf/c.ent*100:0;
+  const wantsM=c.ent>0?c.gv/c.ent*100:0;
+  const savesM=c.ent>0?c.inv/c.ent*100:0;
+  e('rule-cards-mes').innerHTML=`
+    <div class="rule-card" style="border-top-color:#ea9999">
+      <div class="rule-lbl">Necessidades</div>
+      <div class="rule-pct" style="color:#c62828">${needsM.toFixed(1)}%</div>
+      <div class="rule-ideal">Ideal: 50%</div>
+      <div class="rule-val">${fmt(c.gf)}</div>
+    </div>
+    <div class="rule-card" style="border-top-color:#f9cb9c">
+      <div class="rule-lbl">Desejos</div>
+      <div class="rule-pct" style="color:#e65100">${wantsM.toFixed(1)}%</div>
+      <div class="rule-ideal">Ideal: 30%</div>
+      <div class="rule-val">${fmt(c.gv)}</div>
+    </div>
+    <div class="rule-card" style="border-top-color:#93c47d">
+      <div class="rule-lbl">Investimentos</div>
+      <div class="rule-pct" style="color:#2e7d32">${savesM.toFixed(1)}%</div>
+      <div class="rule-ideal">Ideal: 20%</div>
+      <div class="rule-val">${fmt(c.inv)}</div>
+    </div>
+  `;
+
+  // Alertas mensais
+  const alm=[];
+  const icos={ok:'✅',warn:'⚠️',bad:'🚨'};
+  if(!temDados){alm.push({t:'warn',m:`Nenhum dado registrado em ${saudeMesSel}. Adicione entradas e gastos para ver a análise.`});}
+  else {
+    if(taxaPoupM<5) alm.push({t:'bad',m:`Taxa de poupança de ${taxaPoupM.toFixed(1)}% — muito baixa. Tente guardar ao menos 10% da renda.`});
+    else if(taxaPoupM<20) alm.push({t:'warn',m:`Taxa de poupança de ${taxaPoupM.toFixed(1)}%. O ideal é atingir 20%.`});
+    else alm.push({t:'ok',m:`Taxa de poupança de ${taxaPoupM.toFixed(1)}% neste mês. Continue assim!`});
+
+    if(comprM>90) alm.push({t:'bad',m:`Comprometimento de ${comprM.toFixed(1)}% — crítico! Revise os gastos com urgência.`});
+    else if(comprM>70) alm.push({t:'warn',m:`Comprometimento de ${comprM.toFixed(1)}% da renda. Acima do recomendado (70%).`});
+    else alm.push({t:'ok',m:`Comprometimento de ${comprM.toFixed(1)}% da renda — dentro do limite!`});
+
+    if(c.saldo<0) alm.push({t:'bad',m:`Saldo negativo de ${fmtSigned(c.saldo)} em ${saudeMesSel}. Gastos superaram a renda.`});
+    else alm.push({t:'ok',m:`Saldo positivo de ${fmt(c.saldo)} em ${saudeMesSel}!`});
+
+    if(c.inv===0) alm.push({t:'warn',m:`Nenhum investimento registrado em ${saudeMesSel}. Invista regularmente, mesmo que pouco.`});
+
+    if(c.gv>c.gf) alm.push({t:'warn',m:`Gastos variáveis (${fmt(c.gv)}) superam os fixos (${fmt(c.gf)}) neste mês.`});
+  }
+  e('alertas-mes-list').innerHTML=alm.map(a=>`<div class="alerta ${a.t}"><span class="alerta-ico">${icos[a.t]}</span><span>${a.m}</span></div>`).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -2096,7 +2301,7 @@ function openModal(tipo,editId){
       </div>`:''}
       <div class="frow-half">
         <div class="frow"><label>Pagamento</label><select id="f-pag"><option value="">Selecione...</option>${pagOpts}</select></div>
-        <div class="frow"><label>Valor (R$)</label><input id="f-valor" type="text" value="${item?String(item.valor).replace('.',','):''}" placeholder="0,00"></div>
+        <div class="frow"><label>Valor (R$) <span style="font-weight:400;color:var(--text-l);font-size:10px">— use negativo para estorno</span></label><input id="f-valor" type="text" value="${item?String(item.valor).replace('.',','):''}" placeholder="0,00 ou -0,00"></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer" onclick="document.getElementById('f-pago').click()"><input type="checkbox" id="f-pago" ${item&&item.pago?'checked':''} onclick="event.stopPropagation()"><span style="font-size:14px;font-weight:500;color:var(--text)">Já pago?</span></div>
     `;
@@ -2122,7 +2327,7 @@ function closeModal(){
   e('overlay').classList.remove('open');
   modalTipo=null;modalEditId=null;
   const box=e('modal-box');
-  if(box){delete box.dataset.tipo;delete box.dataset.editParcelasJson;delete box.dataset.editParcelasTipo;delete box.dataset.delTipo;delete box.dataset.delId;delete box.dataset.invEditId;delete box.dataset.delInvId;}
+  if(box){delete box.dataset.tipo;delete box.dataset.editParcelasJson;delete box.dataset.editParcelasTipo;delete box.dataset.delTipo;delete box.dataset.delId;delete box.dataset.invEditId;delete box.dataset.delInvId;delete box.dataset.contaEditId;}
   const btn=e('modal-save-btn');
   if(btn){btn.textContent='Salvar';btn.style.background='';btn.style.color='';}
 }
@@ -2166,7 +2371,7 @@ function saveModal(){
     const pag=e('f-pag')?.value;
     const valor=parseVal(e('f-valor')?.value);
     if(!cat||!desc||!valor&&valor!==0){toast('Preencha categoria, descrição e valor');return;}
-    entry={categoria:cat,descricao:desc,data:data||'',parcela:parcela||'',pagamento:pag||'',valor:Math.abs(valor)};
+    entry={categoria:cat,descricao:desc,data:data||'',parcela:parcela||'',pagamento:pag||'',valor};
     entry.pago=e('f-pago')?.checked||false;
   } else if(tipo==='ent'){
     const desc=e('f-desc')?.value?.trim();
@@ -2624,7 +2829,7 @@ function divideRenderDetalhe(){
       ${ev.contas.length ? `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ação</th></tr></thead>
+          <thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ações</th></tr></thead>
           <tbody>
             ${ev.contas.map(c=>`<tr>
               <td>${c.descricao}</td>
@@ -2632,7 +2837,10 @@ function divideRenderDetalhe(){
               <td class="td-r">${fmt(c.valor)}</td>
               <td><span style="background:var(--blue-l);color:var(--blue-d);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${c.pagoPor}</span></td>
               <td style="font-size:12px">${c.participantes.join(', ')}</td>
-              <td class="td-center"><button class="btn btn-sm" style="background:#ffebee;color:#c62828;padding:3px 8px" onclick="divideRemoverConta('${c.id}')">✕</button></td>
+              <td class="td-center" style="white-space:nowrap">
+                <button class="btn-icon btn-edit" onclick="divideEditConta('${c.id}')" title="Editar">✏️</button>
+                <button class="btn-icon btn-del" onclick="divideRemoverConta('${c.id}')" title="Excluir">🗑️</button>
+              </td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -2713,30 +2921,37 @@ function divideConfirmarRemoverMembro(){
   divideRenderDetalhe();
 }
 
-function divideAddConta(){
+function divideAddConta(editId){
   const ev=divideEventoAtivo;
   if(!ev.membros.length){toast('Adicione membros primeiro');return;}
+  const editItem=editId?ev.contas.find(c=>c.id===editId):null;
 
-  const membrosOpts=ev.membros.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const membrosOpts=ev.membros.map(m=>`<option value="${m}" ${editItem&&editItem.pagoPor===m?'selected':''}>${m}</option>`).join('');
   const membrosCheck=ev.membros.map(m=>`
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="this.querySelector('input').click()">
-      <input type="checkbox" value="${m}" checked onclick="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--green);flex-shrink:0">
+      <input type="checkbox" value="${m}" ${!editItem||editItem.participantes.includes(m)?'checked':''} onclick="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--green);flex-shrink:0">
       <span style="font-size:14px;font-weight:500;color:var(--text)">${m}</span>
     </div>`).join('');
   const hoje=new Date().toLocaleDateString('pt-BR');
 
-  e('modal-title').textContent='➕ Nova Conta';
+  e('modal-title').textContent=editId?'✏️ Editar Conta':'➕ Nova Conta';
   e('modal-body').innerHTML=`
-    <div class="frow"><label>Descrição</label><input id="da-desc" placeholder="Ex: Restaurante, Uber..."></div>
+    <div class="frow"><label>Descrição</label><input id="da-desc" placeholder="Ex: Restaurante, Uber..." value="${editItem?editItem.descricao:''}"></div>
     <div class="frow-half">
-      <div class="frow"><label>Data</label><input id="da-data" type="text" value="${hoje}" placeholder="dd/mm/aaaa"></div>
-      <div class="frow"><label>Valor (R$)</label><input id="da-valor" type="text" placeholder="0,00"></div>
+      <div class="frow"><label>Data</label><input id="da-data" type="text" value="${editItem?editItem.data:hoje}" placeholder="dd/mm/aaaa"></div>
+      <div class="frow"><label>Valor (R$)</label><input id="da-valor" type="text" value="${editItem?String(editItem.valor).replace('.',','):''}" placeholder="0,00"></div>
     </div>
     <div class="frow"><label>Quem pagou</label><select id="da-pago">${membrosOpts}</select></div>
     <div class="frow"><label>Participantes (quem divide)</label><div id="da-partic" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 12px">${membrosCheck}</div></div>
   `;
   e('modal-box').dataset.tipo='divide-conta';
+  e('modal-box').dataset.contaEditId=editId||'';
   e('overlay').classList.add('open');
+  setTimeout(()=>e('da-desc')?.focus(),50);
+}
+
+function divideEditConta(id){
+  divideAddConta(id);
 }
 
 function divideRemoverConta(id){
@@ -2776,14 +2991,21 @@ function divideSalvarConta(){
   if(!desc){toast('Informe a descrição');return;}
   if(!valor||valor<=0){toast('Informe um valor válido');return;}
   if(!participantes.length){toast('Selecione ao menos um participante');return;}
+  const editId=e('modal-box').dataset.contaEditId;
   const d=getDivideData();
   const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
-  ev.contas.push({id:'c-'+Date.now(),descricao:desc,data,valor,pagoPor,participantes});
+  if(editId){
+    const idx=ev.contas.findIndex(c=>c.id===editId);
+    if(idx>=0) ev.contas[idx]={...ev.contas[idx],descricao:desc,data,valor,pagoPor,participantes};
+    toast('Conta atualizada!');
+  } else {
+    ev.contas.push({id:'c-'+Date.now(),descricao:desc,data,valor,pagoPor,participantes});
+    toast('Conta adicionada!');
+  }
   saveDivideData(d);
   divideEventoAtivo=ev;
   closeModal();
   divideRenderDetalhe();
-  toast('Conta adicionada!');
 }
 
 // ═══════════════════════════════════════════════
