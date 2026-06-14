@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle Aí 📊</title>
-<link class="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2e7d32">
@@ -140,6 +140,7 @@ tbody td{padding:7px 12px;vertical-align:middle}
 .cat-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
 .cat-row:last-child{border:none}
 .total-row{background:var(--green-l);font-weight:700}
+/* old header media query removed — sidebar replaces header */
 /* ── Dark mode ── */
 body.dark{--green:#4caf50;--green-d:#81c784;--green-l:#1a2e1a;--red:#ef9a9a;--red-d:#ef9a9a;--blue:#9fc5e8;--blue-d:#90caf9;--blue-l:#0a1929;--gray:#2a2a2a;--border:#333;--shadow:0 2px 8px rgba(0,0,0,.4);--text:#e0e0e0;--text-l:#9e9e9e;--bg:#121212;background:#121212;color:#e0e0e0}
 body.dark .pos{color:#81c784}
@@ -789,7 +790,7 @@ body.dark .ys-add{border-color:#333}
 </div>
 
 <!-- NOTAS -->
-<div id="page-notas" class="page">
+<div id="page-notes" class="page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
     <h2 style="font-size:22px;font-weight:800">📝 Anotações</h2>
     <button class="btn btn-g" onclick="notaAbrir()">+ Nova Nota</button>
@@ -1048,7 +1049,6 @@ function createEmptyYear(){
 // ═══════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════
-// Geração simples e compatível de ID único (não UUID) para manter consistência sem pacotes externos.
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
 function fmt(v){
@@ -1197,11 +1197,10 @@ function goMes(mes){
   tabAtiva='gf';
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   e('page-mes').classList.add('active');
-  // Limpar campo de busca ao alternar os meses para evitar que novas páginas apareçam vazias inesperadamente.
+  
   const bInp = e('mes-search');
   if(bInp) bInp.value = '';
 
-  // sidebar nav: activate "Meses" button + month pill
   document.querySelectorAll('.snav-btn').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(x=>x.classList.remove('active'));
   const smb=e('snav-mes-btn');
@@ -2201,7 +2200,7 @@ function renderSaudeMensal(){
   setChartDarkDefaults();
   if(charts.scoreMes) charts.scoreMes.destroy();
   const ctxSm=e('chart-score-mes')?.getContext('2d');
-  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,mEmptyBar],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}}}});
+  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,mEmptyBar],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{disabled:false}}}});
   if(!temDados){
     e('score-mes-num').innerHTML=`<span style="color:${isDarkM?'#666':'#aaa'};font-size:22px">—</span>`;
     e('score-mes-label').textContent='Sem dados neste mês';
@@ -2804,7 +2803,7 @@ function openMetasModal(){
     ${MESES.map(m=>`
       <div class="frow" style="margin-bottom:6px">
         <label>${m}</label>
-        <input id="meta-${m}" type="text" value="${String((d.metasInvestimento||{})[m]||0).replace('.',',')" placeholder="0,00">
+        <input id="meta-${m}" type="text" value="${String((d.metasInvestimento||{})[m]||0).replace('.',',')}" placeholder="0,00">
       </div>
     `).join('')}
   </div>`;
@@ -3002,10 +3001,10 @@ function renderNotas(){
 
   grid.innerHTML=lista.map(n=>{
     const cat=catMap[n.categoria]||catMap['geral'];
-    const corObj=cores[n.corIdx||0]||cores[0];
+    const rCor=cores[n.corIdx||0]||cores[0];
     const preview=n.conteudo.slice(0,300);
     const dataStr=n.atualizadoEm||n.criadoEm||'';
-    return `<div class="nota-card" style="background:${corObj.hex}" onclick="notaAbrir('${n.id}')">
+    return `<div class="nota-card" style="background:${rCor.hex}" onclick="notaAbrir('${n.id}')">
       <div class="nota-card-header">
         <div class="nota-card-title">${escHtml(n.titulo)||'<span style="opacity:.4">Sem título</span>'}</div>
         ${n.pinned?'<span class="nota-card-pin" title="Fixada">📌</span>':''}
@@ -3054,297 +3053,4 @@ function notaAbrir(id){
     <div class="frow">
       <label>Cor do cartão</label>
       <div class="nota-modal-colors" id="nota-color-picker">
-        ${cores.map((c,i)=>`<div class="nota-color-dot ${i===notaCorSel?'sel':''}" style="background:${c.hex};outline:${i===notaCorSel?'2px solid #555':'none'}" title="${c.name}" onclick="notaSelCor(${i})"></div>`).join('')}
-      </div>
-    </div>
-    <div class="frow"><label>Conteúdo</label><textarea id="f-nota-body" class="frow-inline-input" style="min-height:200px;resize:vertical;font-family:inherit;line-height:1.65;padding:10px 12px">${nota?escHtml(nota.conteudo):''}</textarea></div>
-  `;
-  e('modal-box').dataset.tipo='nota';
-  e('modal-box').dataset.notaEditId=id||'';
-  e('modal-save-btn').textContent='💾 Salvar nota';
-  e('overlay').classList.add('open');
-  setTimeout(()=>{const t=e('f-nota-titulo');if(t&&!nota)t.focus();else e('f-nota-body')?.focus();},60);
-}
-
-function notaSelCor(idx){
-  const isDark=document.body.classList.contains('dark');
-  const cores=isDark?NOTA_CORES_DARK:NOTA_CORES;
-  notaCorSel=idx;
-  const picker=e('nota-color-picker');
-  if(!picker) return;
-  picker.querySelectorAll('.nota-color-dot').forEach((d,i)=>{
-    d.classList.toggle('sel',i===idx);
-    d.style.outline=i===idx?'2px solid #555':'none';
-  });
-}
-
-function salvarNota(){
-  const titulo=(e('f-nota-titulo')?.value||'').trim();
-  const cat=e('f-nota-cat')?.value||'geral';
-  const conteudo=(e('f-nota-body')?.value||'').trim();
-  if(!titulo&&!conteudo){toast('Escreva algo antes de salvar');return;}
-  const editId=e('modal-box').dataset.notaEditId;
-  const hoje=new Date().toLocaleDateString('pt-BR');
-  const d=getNotasData();
-  if(editId){
-    const n=d.notas.find(x=>x.id===editId);
-    if(n){n.titulo=titulo;n.conteudo=conteudo;n.categoria=cat;n.corIdx=notaCorSel;n.atualizadoEm=hoje;}
-    toast('Nota atualizada!');
-  } else {
-    d.notas.unshift({id:'n-'+Date.now(),titulo,conteudo,categoria:cat,corIdx:notaCorSel,pinned:false,criadoEm:hoje,atualizadoEm:hoje});
-    toast('Nota criada!');
-  }
-  saveNotasData(d);
-  closeModal();
-  renderNotas();
-}
-
-function notaTogglePin(id){
-  const d=getNotasData();
-  const n=d.notas.find(x=>x.id===id);
-  if(!n) return;
-  n.pinned=!n.pinned;
-  saveNotasData(d);
-  renderNotas();
-  toast(n.pinned?'Nota fixada 📌':'Nota desafixada');
-}
-
-function notaExcluir(id){
-  const d=getNotasData();
-  const n=d.notas.find(x=>x.id===id);
-  if(!n) return;
-  const titulo=n.titulo||'esta nota';
-  e('modal-title').textContent='🗑️ Excluir Nota';
-  e('modal-body').innerHTML=`<div style="text-align:center;padding:10px 0">
-    <div style="font-size:44px;margin-bottom:12px">🗒️</div>
-    <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text)">${escHtml(titulo)}</div>
-    <div style="font-size:13px;color:var(--text-l)">Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.</div>
-  </div>`;
-  e('modal-save-btn').textContent='🗑️ Excluir';
-  e('modal-save-btn').style.background='#c62828';
-  e('modal-save-btn').style.color='#fff';
-  e('modal-box').dataset.tipo='del-nota';
-  e('modal-box').dataset.notaDelId=id;
-  e('overlay').classList.add('open');
-}
-
-function confirmDelNota(){
-  const id=e('modal-box').dataset.notaDelId;
-  const d=getNotasData();
-  d.notas=d.notas.filter(n=>n.id!==id);
-  saveNotasData(d);
-  closeModal();
-  renderNotas();
-  toast('Nota excluída!');
-}
-
-// ═══════════════════════════════════════════════
-// DIVIDE AÊ
-// ═══════════════════════════════════════════════
-let divideEventoAtivo=null;
-
-function getDivideData(){
-  try{const r=localStorage.getItem('divideAe');return r?JSON.parse(r):{eventos:[]};}
-  catch{return{eventos:[]};}
-}
-function saveDivideData(d){
-  localStorage.setItem('divideAe',JSON.stringify(d));
-  scheduleSync();
-}
-
-function renderDivide(){
-  const d=getDivideData();
-  e('divide-lista').style.display='block';
-  e('divide-evento-detalhe').style.display='none';
-  const lista=e('divide-lista');
-  if(!d.eventos.length){
-    lista.innerHTML=`<div class="empty" style="margin-top:40px"><div class="empty-icon">🤝</div><p>Nenhum evento ainda.<br>Clique em "+ Novo Evento" para começar.</p></div>`;
-    return;
-  }
-  lista.innerHTML=d.eventos.map(ev=>{
-    const total=ev.contas.reduce((s,c)=>s+c.valor,0);
-    const membros=ev.membros.length;
-    return `<div class="section" style="cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,.13)'" onmouseleave="this.style.boxShadow=''" onclick="divideAbrirEvento('${ev.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:17px;font-weight:700">${ev.nome}</div>
-          <div style="font-size:12px;color:var(--text-l);margin-top:3px">📅 ${ev.data} · 👥 ${membros} pessoa${membros!==1?'s':''} · 🧾 ${ev.contas.length} conta${ev.contas.length!==1?'s':''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:18px;font-weight:800;color:#1565c0">${fmt(total)}</div>
-          <div style="font-size:11px;color:var(--text-l)">total do evento</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-        ${ev.membros.map(m=>`<span style="background:var(--green-l);color:var(--green-d);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${m}</span>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function divideNovoEvento(){
-  const hoje=new Date().toLocaleDateString('pt-BR');
-  e('modal-title').textContent='🤝 Novo Evento';
-  e('modal-body').innerHTML=`
-    <div class="frow"><label>Nome do evento</label><input id="dv-nome" placeholder="Ex: Viagem para SP, Churrasco..."></div>
-    <div class="frow"><label>Data</label><input id="dv-data" type="text" value="${hoje}" placeholder="dd/mm/aaaa"></div>
-  `;
-  e('modal-box').dataset.tipo='divide-novo-evento';
-  e('overlay').classList.add('open');
-  setTimeout(()=>e('dv-nome')?.focus(),100);
-}
-
-function divideSalvarNovoEvento(){
-  const nome=e('dv-nome')?.value.trim();
-  const data=e('dv-data')?.value.trim()||new Date().toLocaleDateString('pt-BR');
-  if(!nome){toast('Informe o nome do evento');return;}
-  const d=getDivideData();
-  const ev={id:'ev-'+Date.now(),nome,data,membros:[],contas:[]};
-  d.eventos.unshift(ev);
-  saveDivideData(d);
-  closeModal();
-  divideAbrirEvento(ev.id);
-}
-
-function divideAbrirEvento(id){
-  const d=getDivideData();
-  divideEventoAtivo=d.eventos.find(ev=>ev.id===id);
-  if(!divideEventoAtivo) return;
-  e('divide-lista').style.display='none';
-  e('divide-evento-detalhe').style.display='block';
-  divideRenderDetalhe();
-}
-
-function divideVoltarLista(){
-  divideEventoAtivo=null;
-  renderDivide();
-}
-
-function divideRenderDetalhe(){
-  const ev=divideEventoAtivo;
-  const el=e('divide-detalhe-content');
-
-  // Calcular resumo
-  const saldos={};
-  ev.membros.forEach(m=>saldos[m]=0);
-  ev.contas.forEach(c=>{
-    const partic=c.participantes.filter(p=>ev.membros.includes(p));
-    if(!partic.length) return;
-    const parte=c.valor/partic.length;
-    saldos[c.pagoPor]=(saldos[c.pagoPor]||0)+c.valor;
-    partic.forEach(p=>saldos[p]=(saldos[p]||0)-parte);
-  });
-
-  // Simplificar dívidas
-  const dividas=[];
-  const credores=Object.entries(saldos).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  const devedores=Object.entries(saldos).filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]);
-  const cred=[...credores.map(([n,v])=>({n,v}))];
-  const dev=[...devedores.map(([n,v])=>({n,v:-v}))];
-  let i=0,j=0;
-  while(i<cred.length&&j<dev.length){
-    const pagar=Math.min(cred[i].v,dev[j].v);
-    if(pagar>0.01) dividas.push({de:dev[j].n,para:cred[i].n,valor:pagar});
-    cred[i].v-=pagar; dev[j].v-=pagar;
-    if(cred[i].v<0.01) i++;
-    if(dev[j].v<0.01) j++;
-  }
-
-  const total=ev.contas.reduce((s,c)=>s+c.valor,0);
-
-  el.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-      <div>
-        <h2 style="font-size:20px;font-weight:800">${ev.nome}</h2>
-        <div style="font-size:13px;color:var(--text-l)">📅 ${ev.data}</div>
-      </div>
-      <button class="btn btn-sm" style="background:#ffebee;color:#c62828" onclick="divideExcluirEvento('${ev.id}')">🗑️ Excluir evento</button>
-    </div>
-
-    <!-- Membros -->
-    <div class="section">
-      <div class="sec-header">
-        <div class="sec-title">👥 Membros</div>
-        <button class="btn btn-g btn-sm" onclick="divideAddMembro()">+ Adicionar</button>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap" id="divide-membros">
-        ${ev.membros.length
-          ? ev.membros.map(m=>`<span style="background:var(--green-l);color:var(--green-d);padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px">${m}<span style="cursor:pointer;opacity:.6;font-size:11px" onclick="divideRemoverMembro('${m}')">✕</span></span>`).join('')
-          : '<span style="color:var(--text-l);font-size:13px">Nenhum membro ainda</span>'}
-      </div>
-    </div>
-
-    <!-- Contas -->
-    <div class="section">
-      <div class="sec-header">
-        <div class="sec-title">🧾 Contas <span style="font-size:13px;font-weight:400;color:var(--text-l)">(Total: ${fmt(total)})</span></div>
-        <button class="btn btn-g btn-sm" onclick="divideAddConta()" ${!ev.membros.length?'disabled title="Adicione membros primeiro"':''}>+ Adicionar Conta</button>
-      </div>
-      ${ev.contas.length ? `
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ações</th></tr></thead>
-          <tbody>
-            ${ev.contas.map(c=>`<tr>
-              <td>${c.descricao}</td>
-              <td style="white-space:nowrap;color:var(--text-l);font-size:12px">${c.data||'—'}</td>
-              <td class="td-r">${fmt(c.valor)}</td>
-              <td><span style="background:var(--blue-l);color:var(--blue-d);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${c.pagoPor}</span></td>
-              <td style="font-size:12px">${c.participantes.join(', ')}</td>
-              <td class="td-center" style="white-space:nowrap">
-                <button class="btn-icon btn-edit" onclick="divideEditConta('${c.id}')" title="Editar">✏️</button>
-                <button class="btn-icon btn-del" onclick="divideRemoverConta('${c.id}')" title="Excluir">🗑️</button>
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>` : '<div style="color:var(--text-l);font-size:13px;text-align:center;padding:20px">Nenhuma conta ainda</div>'}
-    </div>
-
-    <!-- Resumo -->
-    <div class="section">
-      <div class="sec-title" style="margin-bottom:16px">💰 Resumo — Quem deve pagar quem</div>
-      ${!ev.membros.length||!ev.contas.length ? '<div style="color:var(--text-l);font-size:13px;text-align:center;padding:10px">Adicione membros e contas para ver o resumo</div>' : `
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px">
-          ${ev.membros.map(m=>{
-            const s=saldos[m]||0;
-            // check if all debts from this member have been marked paid
-            const pagoMap=ev.pagos||{};
-            const debitosPendentes=dividas.filter(d=>d.de===m&&!pagoMap[d.de+'→'+d.para]);
-            const recebiveisPendentes=dividas.filter(d=>d.para===m&&!pagoMap[d.de+'→'+d.para]);
-            const tudo_pago=(debitosPendentes.length===0&&recebiveisPendentes.length===0&&(dividas.filter(d=>d.de===m||d.para===m).length>0||Math.abs(s)<0.01));
-            return `<div style="background:var(--bg);border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${s>0.01?'var(--green)':s<-0.01?'var(--red)':'#9e9e9e'}">
-              <div style="font-weight:700;font-size:14px;margin-bottom:6px">${m}</div>
-              <div style="font-size:17px;font-weight:800;color:${s>0.01?'var(--green-d)':s<-0.01?'var(--red-d)':'#9e9e9e'}">${s>0.01?'+':''}${fmt(Math.abs(s))}</div>
-              <div style="font-size:11px;color:var(--text-l);margin-top:3px">${s>0.01?'💚 a receber':s<-0.01?'🔴 a pagar':'✅ quitado'}</div>
-            </div>`;
-          }).join('')}
-        </div>
-        ${dividas.length ? `
-          <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px">Transferências para acertar</div>
-          ${dividas.map(d=>{
-            const key=d.de+'→'+d.para;
-            const isPago=!!(ev.pagos||{})[key];
-            return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;${isPago?'opacity:.55;':''}">
-              <span style="font-weight:700;color:var(--red-d);${isPago?'text-decoration:line-through;':''}">${d.de}</span>
-              <span style="color:var(--text-l)">→</span>
-              <span style="font-weight:800;color:var(--blue-d)">${fmt(d.valor)}</span>
-              <span style="color:var(--text-l)">→</span>
-              <span style="font-weight:700;color:var(--green-d);${isPago?'text-decoration:line-through;':''}">${d.para}</span>
-              <button onclick="divideToglePago('${ev.id}','${d.de}','${d.para}')"
-                style="margin-left:auto;padding:4px 12px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all .15s;
-                  ${isPago?'background:#e8f5e9;color:#2e7d32':'background:#ffebee;color:#c62828'}">
-                ${isPago?'✅ Pago':'⬜ Marcar pago'}
-              </button>
-            </div>`;
-          }).join('')}
-        ` : '<div style="color:var(--green-d);font-weight:600;text-align:center;padding:10px">✅ Tudo quitado!</div>'}
-      `}
-    </div>
-  `;
-}
-
-function divideAddMembro(){
-  e('modal-title').textContent='👤 Adicionar Membro';
-  e('modal-body').innerHTML=`
-    <div class="frow"><label
+        ${cores.map((c,i)=>`<div class="nota-color-dot ${i===notaCorSel?'sel':''}" style="background:${c.hex};outline:${i===notaCorSel?'2px solid #555':'none'}" title="${c.name}" onclick="nota
