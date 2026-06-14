@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -562,9 +561,6 @@ body.dark .ys-add{border-color:#333}
     </div>
   </div>
   <div class="cards" id="mes-cards"></div>
-  <div style="margin-bottom: 14px;">
-    <input class="notas-search" id="mes-search" placeholder="🔍 Buscar nesta lista (por descrição, categoria ou forma de pagamento)..." oninput="renderMes()" style="width: 100%;">
-  </div>
   <div class="section">
     <div class="tabs">
       <button class="tab-btn active" data-tab="gf" onclick="selTab('gf')">📌 Gastos Fixos</button>
@@ -790,7 +786,7 @@ body.dark .ys-add{border-color:#333}
 </div>
 
 <!-- NOTAS -->
-<div id="page-notes" class="page">
+<div id="page-notas" class="page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
     <h2 style="font-size:22px;font-weight:800">📝 Anotações</h2>
     <button class="btn btn-g" onclick="notaAbrir()">+ Nova Nota</button>
@@ -1197,10 +1193,7 @@ function goMes(mes){
   tabAtiva='gf';
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   e('page-mes').classList.add('active');
-  
-  const bInp = e('mes-search');
-  if(bInp) bInp.value = '';
-
+  // sidebar nav: activate "Meses" button + month pill
   document.querySelectorAll('.snav-btn').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(x=>x.classList.remove('active'));
   const smb=e('snav-mes-btn');
@@ -1496,21 +1489,10 @@ function renderTab(t){
 function renderTbl(tipo){
   const d=loadData();
   const m=d.meses[mesSel];
-  let arr=tipo==='gf'?m.gastosFixos:m.gastosVariaveis;
-
-  // Filtro de Busca
-  const busca = (e('mes-search')?.value || '').toLowerCase().trim();
-  if (busca) {
-    arr = arr.filter(x => 
-      (x.descricao && x.descricao.toLowerCase().includes(busca)) ||
-      (x.categoria && x.categoria.toLowerCase().includes(busca)) ||
-      (x.pagamento && x.pagamento.toLowerCase().includes(busca))
-    );
-  }
-
+  const arr=tipo==='gf'?m.gastosFixos:m.gastosVariaveis;
   const total=arr.reduce((s,x)=>s+x.valor,0);
   if(!arr.length){
-    e('tbl-'+tipo).innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>${busca ? 'Nenhum lançamento encontrado para a busca.' : 'Nenhum registro ainda.<br>Clique em "+ Adicionar" para começar.'}</p></div>`;
+    e('tbl-'+tipo).innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>Nenhum registro ainda.<br>Clique em "+ Adicionar" para começar.</p></div>`;
     return;
   }
   e('tbl-'+tipo).innerHTML=`<table>
@@ -1548,19 +1530,10 @@ function renderTbl(tipo){
 
 function renderEntradas(){
   const d=loadData();
-  let arr=d.meses[mesSel].entradas;
-
-  // Filtro de Busca
-  const busca = (e('mes-search')?.value || '').toLowerCase().trim();
-  if (busca) {
-    arr = arr.filter(x => 
-      (x.descricao && x.descricao.toLowerCase().includes(busca))
-    );
-  }
-
+  const arr=d.meses[mesSel].entradas;
   const total=arr.reduce((s,x)=>s+x.valor,0);
   if(!arr.length){
-    e('tbl-ent').innerHTML=`<div class="empty"><div class="empty-icon">💰</div><p>${busca ? 'Nenhuma entrada encontrada para a busca.' : 'Nenhuma entrada registrada.'}</p></div>`;
+    e('tbl-ent').innerHTML=`<div class="empty"><div class="empty-icon">💰</div><p>Nenhuma entrada registrada.</p></div>`;
     return;
   }
   e('tbl-ent').innerHTML=`<table>
@@ -1589,20 +1562,11 @@ function renderInv(){
   const isDark=document.body.classList.contains('dark');
   const invBg=isDark?'#0d3050':'#1565c0';
   const invColor=isDark?'#90caf9':'#1565c0';
-  let arr=d.meses[mesSel].investimentos;
-
-  // Filtro de Busca
-  const busca = (e('mes-search')?.value || '').toLowerCase().trim();
-  if (busca) {
-    arr = arr.filter(x => 
-      (x.descricao && x.descricao.toLowerCase().includes(busca))
-    );
-  }
-
+  const arr=d.meses[mesSel].investimentos;
   const total=arr.reduce((s,x)=>s+x.valor,0);
   const meta=d.metasInvestimento[mesSel]||0;
   if(!arr.length){
-    e('tbl-inv').innerHTML=`<div class="empty"><div class="empty-icon">🏦</div><p>${busca ? 'Nenhum investimento encontrado para a busca.' : 'Nenhum investimento registrado.<br>Meta: ' + fmt(meta)}</p></div>`;
+    e('tbl-inv').innerHTML=`<div class="empty"><div class="empty-icon">🏦</div><p>Nenhum investimento registrado.<br>Meta: ${fmt(meta)}</p></div>`;
     return;
   }
   const pct=meta>0?Math.min(100,total/meta*100):0;
@@ -2200,7 +2164,7 @@ function renderSaudeMensal(){
   setChartDarkDefaults();
   if(charts.scoreMes) charts.scoreMes.destroy();
   const ctxSm=e('chart-score-mes')?.getContext('2d');
-  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,mEmptyBar],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{disabled:false}}}});
+  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,mEmptyBar],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}}}});
   if(!temDados){
     e('score-mes-num').innerHTML=`<span style="color:${isDarkM?'#666':'#aaa'};font-size:22px">—</span>`;
     e('score-mes-label').textContent='Sem dados neste mês';
@@ -3001,10 +2965,10 @@ function renderNotas(){
 
   grid.innerHTML=lista.map(n=>{
     const cat=catMap[n.categoria]||catMap['geral'];
-    const rCor=cores[n.corIdx||0]||cores[0];
+    const corObj=cores[n.corIdx||0]||cores[0];
     const preview=n.conteudo.slice(0,300);
     const dataStr=n.atualizadoEm||n.criadoEm||'';
-    return `<div class="nota-card" style="background:${rCor.hex}" onclick="notaAbrir('${n.id}')">
+    return `<div class="nota-card" style="background:${corObj.hex}" onclick="notaAbrir('${n.id}')">
       <div class="nota-card-header">
         <div class="nota-card-title">${escHtml(n.titulo)||'<span style="opacity:.4">Sem título</span>'}</div>
         ${n.pinned?'<span class="nota-card-pin" title="Fixada">📌</span>':''}
@@ -3053,4 +3017,807 @@ function notaAbrir(id){
     <div class="frow">
       <label>Cor do cartão</label>
       <div class="nota-modal-colors" id="nota-color-picker">
-        ${cores.map((c,i)=>`<div class="nota-color-dot ${i===notaCorSel?'sel':''}" style="background:${c.hex};outline:${i===notaCorSel?'2px solid #555':'none'}" title="${c.name}" onclick="nota
+        ${cores.map((c,i)=>`<div class="nota-color-dot ${i===notaCorSel?'sel':''}" style="background:${c.hex};outline:${i===notaCorSel?'2px solid #555':'none'}" title="${c.name}" onclick="notaSelCor(${i})"></div>`).join('')}
+      </div>
+    </div>
+    <div class="frow"><label>Conteúdo</label><textarea id="f-nota-body" class="frow-inline-input" style="min-height:200px;resize:vertical;font-family:inherit;line-height:1.65;padding:10px 12px">${nota?escHtml(nota.conteudo):''}</textarea></div>
+  `;
+  e('modal-box').dataset.tipo='nota';
+  e('modal-box').dataset.notaEditId=id||'';
+  e('modal-save-btn').textContent='💾 Salvar nota';
+  e('overlay').classList.add('open');
+  setTimeout(()=>{const t=e('f-nota-titulo');if(t&&!nota)t.focus();else e('f-nota-body')?.focus();},60);
+}
+
+function notaSelCor(idx){
+  const isDark=document.body.classList.contains('dark');
+  const cores=isDark?NOTA_CORES_DARK:NOTA_CORES;
+  notaCorSel=idx;
+  const picker=e('nota-color-picker');
+  if(!picker) return;
+  picker.querySelectorAll('.nota-color-dot').forEach((d,i)=>{
+    d.classList.toggle('sel',i===idx);
+    d.style.outline=i===idx?'2px solid #555':'none';
+  });
+}
+
+function salvarNota(){
+  const titulo=(e('f-nota-titulo')?.value||'').trim();
+  const cat=e('f-nota-cat')?.value||'geral';
+  const conteudo=(e('f-nota-body')?.value||'').trim();
+  if(!titulo&&!conteudo){toast('Escreva algo antes de salvar');return;}
+  const editId=e('modal-box').dataset.notaEditId;
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const d=getNotasData();
+  if(editId){
+    const n=d.notas.find(x=>x.id===editId);
+    if(n){n.titulo=titulo;n.conteudo=conteudo;n.categoria=cat;n.corIdx=notaCorSel;n.atualizadoEm=hoje;}
+    toast('Nota atualizada!');
+  } else {
+    d.notas.unshift({id:'n-'+Date.now(),titulo,conteudo,categoria:cat,corIdx:notaCorSel,pinned:false,criadoEm:hoje,atualizadoEm:hoje});
+    toast('Nota criada!');
+  }
+  saveNotasData(d);
+  closeModal();
+  renderNotas();
+}
+
+function notaTogglePin(id){
+  const d=getNotasData();
+  const n=d.notas.find(x=>x.id===id);
+  if(!n) return;
+  n.pinned=!n.pinned;
+  saveNotasData(d);
+  renderNotas();
+  toast(n.pinned?'Nota fixada 📌':'Nota desafixada');
+}
+
+function notaExcluir(id){
+  const d=getNotasData();
+  const n=d.notas.find(x=>x.id===id);
+  if(!n) return;
+  const titulo=n.titulo||'esta nota';
+  e('modal-title').textContent='🗑️ Excluir Nota';
+  e('modal-body').innerHTML=`<div style="text-align:center;padding:10px 0">
+    <div style="font-size:44px;margin-bottom:12px">🗒️</div>
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text)">${escHtml(titulo)}</div>
+    <div style="font-size:13px;color:var(--text-l)">Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.</div>
+  </div>`;
+  e('modal-save-btn').textContent='🗑️ Excluir';
+  e('modal-save-btn').style.background='#c62828';
+  e('modal-save-btn').style.color='#fff';
+  e('modal-box').dataset.tipo='del-nota';
+  e('modal-box').dataset.notaDelId=id;
+  e('overlay').classList.add('open');
+}
+
+function confirmDelNota(){
+  const id=e('modal-box').dataset.notaDelId;
+  const d=getNotasData();
+  d.notas=d.notas.filter(n=>n.id!==id);
+  saveNotasData(d);
+  closeModal();
+  renderNotas();
+  toast('Nota excluída!');
+}
+
+// ═══════════════════════════════════════════════
+// DIVIDE AÊ
+// ═══════════════════════════════════════════════
+let divideEventoAtivo=null;
+
+function getDivideData(){
+  try{const r=localStorage.getItem('divideAe');return r?JSON.parse(r):{eventos:[]};}
+  catch{return{eventos:[]};}
+}
+function saveDivideData(d){
+  localStorage.setItem('divideAe',JSON.stringify(d));
+  scheduleSync();
+}
+
+function renderDivide(){
+  const d=getDivideData();
+  e('divide-lista').style.display='block';
+  e('divide-evento-detalhe').style.display='none';
+  const lista=e('divide-lista');
+  if(!d.eventos.length){
+    lista.innerHTML=`<div class="empty" style="margin-top:40px"><div class="empty-icon">🤝</div><p>Nenhum evento ainda.<br>Clique em "+ Novo Evento" para começar.</p></div>`;
+    return;
+  }
+  lista.innerHTML=d.eventos.map(ev=>{
+    const total=ev.contas.reduce((s,c)=>s+c.valor,0);
+    const membros=ev.membros.length;
+    return `<div class="section" style="cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,.13)'" onmouseleave="this.style.boxShadow=''" onclick="divideAbrirEvento('${ev.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:17px;font-weight:700">${ev.nome}</div>
+          <div style="font-size:12px;color:var(--text-l);margin-top:3px">📅 ${ev.data} · 👥 ${membros} pessoa${membros!==1?'s':''} · 🧾 ${ev.contas.length} conta${ev.contas.length!==1?'s':''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:800;color:#1565c0">${fmt(total)}</div>
+          <div style="font-size:11px;color:var(--text-l)">total do evento</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        ${ev.membros.map(m=>`<span style="background:var(--green-l);color:var(--green-d);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${m}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function divideNovoEvento(){
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  e('modal-title').textContent='🤝 Novo Evento';
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Nome do evento</label><input id="dv-nome" placeholder="Ex: Viagem para SP, Churrasco..."></div>
+    <div class="frow"><label>Data</label><input id="dv-data" type="text" value="${hoje}" placeholder="dd/mm/aaaa"></div>
+  `;
+  e('modal-box').dataset.tipo='divide-novo-evento';
+  e('overlay').classList.add('open');
+  setTimeout(()=>e('dv-nome')?.focus(),100);
+}
+
+function divideSalvarNovoEvento(){
+  const nome=e('dv-nome')?.value.trim();
+  const data=e('dv-data')?.value.trim()||new Date().toLocaleDateString('pt-BR');
+  if(!nome){toast('Informe o nome do evento');return;}
+  const d=getDivideData();
+  const ev={id:'ev-'+Date.now(),nome,data,membros:[],contas:[]};
+  d.eventos.unshift(ev);
+  saveDivideData(d);
+  closeModal();
+  divideAbrirEvento(ev.id);
+}
+
+function divideAbrirEvento(id){
+  const d=getDivideData();
+  divideEventoAtivo=d.eventos.find(ev=>ev.id===id);
+  if(!divideEventoAtivo) return;
+  e('divide-lista').style.display='none';
+  e('divide-evento-detalhe').style.display='block';
+  divideRenderDetalhe();
+}
+
+function divideVoltarLista(){
+  divideEventoAtivo=null;
+  renderDivide();
+}
+
+function divideRenderDetalhe(){
+  const ev=divideEventoAtivo;
+  const el=e('divide-detalhe-content');
+
+  // Calcular resumo
+  const saldos={};
+  ev.membros.forEach(m=>saldos[m]=0);
+  ev.contas.forEach(c=>{
+    const partic=c.participantes.filter(p=>ev.membros.includes(p));
+    if(!partic.length) return;
+    const parte=c.valor/partic.length;
+    saldos[c.pagoPor]=(saldos[c.pagoPor]||0)+c.valor;
+    partic.forEach(p=>saldos[p]=(saldos[p]||0)-parte);
+  });
+
+  // Simplificar dívidas
+  const dividas=[];
+  const credores=Object.entries(saldos).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const devedores=Object.entries(saldos).filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]);
+  const cred=[...credores.map(([n,v])=>({n,v}))];
+  const dev=[...devedores.map(([n,v])=>({n,v:-v}))];
+  let i=0,j=0;
+  while(i<cred.length&&j<dev.length){
+    const pagar=Math.min(cred[i].v,dev[j].v);
+    if(pagar>0.01) dividas.push({de:dev[j].n,para:cred[i].n,valor:pagar});
+    cred[i].v-=pagar; dev[j].v-=pagar;
+    if(cred[i].v<0.01) i++;
+    if(dev[j].v<0.01) j++;
+  }
+
+  const total=ev.contas.reduce((s,c)=>s+c.valor,0);
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <h2 style="font-size:20px;font-weight:800">${ev.nome}</h2>
+        <div style="font-size:13px;color:var(--text-l)">📅 ${ev.data}</div>
+      </div>
+      <button class="btn btn-sm" style="background:#ffebee;color:#c62828" onclick="divideExcluirEvento('${ev.id}')">🗑️ Excluir evento</button>
+    </div>
+
+    <!-- Membros -->
+    <div class="section">
+      <div class="sec-header">
+        <div class="sec-title">👥 Membros</div>
+        <button class="btn btn-g btn-sm" onclick="divideAddMembro()">+ Adicionar</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="divide-membros">
+        ${ev.membros.length
+          ? ev.membros.map(m=>`<span style="background:var(--green-l);color:var(--green-d);padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px">${m}<span style="cursor:pointer;opacity:.6;font-size:11px" onclick="divideRemoverMembro('${m}')">✕</span></span>`).join('')
+          : '<span style="color:var(--text-l);font-size:13px">Nenhum membro ainda</span>'}
+      </div>
+    </div>
+
+    <!-- Contas -->
+    <div class="section">
+      <div class="sec-header">
+        <div class="sec-title">🧾 Contas <span style="font-size:13px;font-weight:400;color:var(--text-l)">(Total: ${fmt(total)})</span></div>
+        <button class="btn btn-g btn-sm" onclick="divideAddConta()" ${!ev.membros.length?'disabled title="Adicione membros primeiro"':''}>+ Adicionar Conta</button>
+      </div>
+      ${ev.contas.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th>Quem pagou</th><th>Participantes</th><th style="text-align:center">Ações</th></tr></thead>
+          <tbody>
+            ${ev.contas.map(c=>`<tr>
+              <td>${c.descricao}</td>
+              <td style="white-space:nowrap;color:var(--text-l);font-size:12px">${c.data||'—'}</td>
+              <td class="td-r">${fmt(c.valor)}</td>
+              <td><span style="background:var(--blue-l);color:var(--blue-d);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${c.pagoPor}</span></td>
+              <td style="font-size:12px">${c.participantes.join(', ')}</td>
+              <td class="td-center" style="white-space:nowrap">
+                <button class="btn-icon btn-edit" onclick="divideEditConta('${c.id}')" title="Editar">✏️</button>
+                <button class="btn-icon btn-del" onclick="divideRemoverConta('${c.id}')" title="Excluir">🗑️</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : '<div style="color:var(--text-l);font-size:13px;text-align:center;padding:20px">Nenhuma conta ainda</div>'}
+    </div>
+
+    <!-- Resumo -->
+    <div class="section">
+      <div class="sec-title" style="margin-bottom:16px">💰 Resumo — Quem deve pagar quem</div>
+      ${!ev.membros.length||!ev.contas.length ? '<div style="color:var(--text-l);font-size:13px;text-align:center;padding:10px">Adicione membros e contas para ver o resumo</div>' : `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px">
+          ${ev.membros.map(m=>{
+            const s=saldos[m]||0;
+            // check if all debts from this member have been marked paid
+            const pagoMap=ev.pagos||{};
+            const debitosPendentes=dividas.filter(d=>d.de===m&&!pagoMap[d.de+'→'+d.para]);
+            const recebiveisPendentes=dividas.filter(d=>d.para===m&&!pagoMap[d.de+'→'+d.para]);
+            const tudo_pago=(debitosPendentes.length===0&&recebiveisPendentes.length===0&&(dividas.filter(d=>d.de===m||d.para===m).length>0||Math.abs(s)<0.01));
+            return `<div style="background:var(--bg);border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${s>0.01?'var(--green)':s<-0.01?'var(--red)':'#9e9e9e'}">
+              <div style="font-weight:700;font-size:14px;margin-bottom:6px">${m}</div>
+              <div style="font-size:17px;font-weight:800;color:${s>0.01?'var(--green-d)':s<-0.01?'var(--red-d)':'#9e9e9e'}">${s>0.01?'+':''}${fmt(Math.abs(s))}</div>
+              <div style="font-size:11px;color:var(--text-l);margin-top:3px">${s>0.01?'💚 a receber':s<-0.01?'🔴 a pagar':'✅ quitado'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        ${dividas.length ? `
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text-l);text-transform:uppercase;letter-spacing:.5px">Transferências para acertar</div>
+          ${dividas.map(d=>{
+            const key=d.de+'→'+d.para;
+            const isPago=!!(ev.pagos||{})[key];
+            return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;${isPago?'opacity:.55;':''}">
+              <span style="font-weight:700;color:var(--red-d);${isPago?'text-decoration:line-through;':''}">${d.de}</span>
+              <span style="color:var(--text-l)">→</span>
+              <span style="font-weight:800;color:var(--blue-d)">${fmt(d.valor)}</span>
+              <span style="color:var(--text-l)">→</span>
+              <span style="font-weight:700;color:var(--green-d);${isPago?'text-decoration:line-through;':''}">${d.para}</span>
+              <button onclick="divideToglePago('${ev.id}','${d.de}','${d.para}')"
+                style="margin-left:auto;padding:4px 12px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all .15s;
+                  ${isPago?'background:#e8f5e9;color:#2e7d32':'background:#ffebee;color:#c62828'}">
+                ${isPago?'✅ Pago':'⬜ Marcar pago'}
+              </button>
+            </div>`;
+          }).join('')}
+        ` : '<div style="color:var(--green-d);font-weight:600;text-align:center;padding:10px">✅ Tudo quitado!</div>'}
+      `}
+    </div>
+  `;
+}
+
+function divideAddMembro(){
+  e('modal-title').textContent='👤 Adicionar Membro';
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Nome</label><input id="dv-membro" placeholder="Ex: João, Maria..."></div>
+  `;
+  e('modal-box').dataset.tipo='divide-membro';
+  e('overlay').classList.add('open');
+  setTimeout(()=>e('dv-membro')?.focus(),100);
+}
+
+function divideToglePago(evId,de,para){
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===evId);
+  if(!ev) return;
+  if(!ev.pagos) ev.pagos={};
+  const key=de+'→'+para;
+  ev.pagos[key]=!ev.pagos[key];
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  divideRenderDetalhe();
+  toast(ev.pagos[key]?'✅ Marcado como pago!':'↩ Desmarcado');
+}
+
+function divideSalvarMembro(){
+  const nome=e('dv-membro')?.value.trim();
+  if(!nome){toast('Informe o nome');return;}
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  if(ev.membros.includes(nome)){toast('Membro já adicionado');return;}
+  ev.membros.push(nome);
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  closeModal();
+  divideRenderDetalhe();
+}
+
+function divideRemoverMembro(nome){
+  e('modal-title').textContent='⚠️ Remover Membro';
+  e('modal-body').innerHTML=`<p style="font-size:14px;line-height:1.6">Tem certeza que deseja remover <strong>${nome}</strong>?<br><span style="color:var(--text-l);font-size:13px">Ele será removido de todas as contas deste evento.</span></p>`;
+  e('modal-box').dataset.tipo='divide-rm-membro';
+  e('modal-box').dataset.membro=nome;
+  e('overlay').classList.add('open');
+  divideModalBtn('Remover');
+}
+
+function divideConfirmarRemoverMembro(){
+  const nome=e('modal-box').dataset.membro;
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  ev.membros=ev.membros.filter(m=>m!==nome);
+  ev.contas=ev.contas.map(c=>({...c,participantes:c.participantes.filter(p=>p!==nome)}));
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  closeModal();
+  divideRenderDetalhe();
+}
+
+function divideAddConta(editId){
+  const ev=divideEventoAtivo;
+  if(!ev.membros.length){toast('Adicione membros primeiro');return;}
+  const editItem=editId?ev.contas.find(c=>c.id===editId):null;
+
+  const membrosOpts=ev.membros.map(m=>`<option value="${m}" ${editItem&&editItem.pagoPor===m?'selected':''}>${m}</option>`).join('');
+  const membrosCheck=ev.membros.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="this.querySelector('input').click()">
+      <input type="checkbox" value="${m}" ${!editItem||editItem.participantes.includes(m)?'checked':''} onclick="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--green);flex-shrink:0">
+      <span style="font-size:14px;font-weight:500;color:var(--text)">${m}</span>
+    </div>`).join('');
+  const hoje=new Date().toLocaleDateString('pt-BR');
+
+  e('modal-title').textContent=editId?'✏️ Editar Conta':'➕ Nova Conta';
+  e('modal-body').innerHTML=`
+    <div class="frow"><label>Descrição</label><input id="da-desc" placeholder="Ex: Restaurante, Uber..." value="${editItem?editItem.descricao:''}"></div>
+    <div class="frow-half">
+      <div class="frow"><label>Data</label><input id="da-data" type="text" value="${editItem?editItem.data:hoje}" placeholder="dd/mm/aaaa"></div>
+      <div class="frow"><label>Valor (R$)</label><input id="da-valor" type="text" value="${editItem?String(editItem.valor).replace('.',','):''}" placeholder="0,00"></div>
+    </div>
+    <div class="frow"><label>Quem pagou</label><select id="da-pago">${membrosOpts}</select></div>
+    <div class="frow"><label>Participantes (quem divide)</label><div id="da-partic" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 12px">${membrosCheck}</div></div>
+  `;
+  e('modal-box').dataset.tipo='divide-conta';
+  e('modal-box').dataset.contaEditId=editId||'';
+  e('overlay').classList.add('open');
+  setTimeout(()=>e('da-desc')?.focus(),50);
+}
+
+function divideEditConta(id){
+  divideAddConta(id);
+}
+
+function divideRemoverConta(id){
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  ev.contas=ev.contas.filter(c=>c.id!==id);
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  divideRenderDetalhe();
+}
+
+function divideExcluirEvento(id){
+  e('modal-title').textContent='🗑️ Excluir Evento';
+  e('modal-body').innerHTML=`<p style="font-size:14px;line-height:1.6">Tem certeza que deseja excluir este evento?<br><span style="color:#c62828;font-size:13px">Todos os membros e contas serão perdidos permanentemente.</span></p>`;
+  e('modal-box').dataset.tipo='divide-rm-evento';
+  e('modal-box').dataset.eventoId=id;
+  e('overlay').classList.add('open');
+  divideModalBtn('Excluir');
+}
+
+function divideConfirmarExcluirEvento(){
+  const id=e('modal-box').dataset.eventoId;
+  const d=getDivideData();
+  d.eventos=d.eventos.filter(ev=>ev.id!==id);
+  saveDivideData(d);
+  closeModal();
+  divideVoltarLista();
+}
+
+function divideSalvarConta(){
+  const desc=e('da-desc')?.value.trim();
+  const data=e('da-data')?.value.trim()||new Date().toLocaleDateString('pt-BR');
+  const valorRaw=e('da-valor')?.value.replace(',','.');
+  const valor=parseFloat(valorRaw);
+  const pagoPor=e('da-pago')?.value;
+  const participantes=[...document.querySelectorAll('#da-partic input:checked')].map(x=>x.value);
+  if(!desc){toast('Informe a descrição');return;}
+  if(!valor||valor<=0){toast('Informe um valor válido');return;}
+  if(!participantes.length){toast('Selecione ao menos um participante');return;}
+  const editId=e('modal-box').dataset.contaEditId;
+  const d=getDivideData();
+  const ev=d.eventos.find(x=>x.id===divideEventoAtivo.id);
+  if(editId){
+    const idx=ev.contas.findIndex(c=>c.id===editId);
+    if(idx>=0) ev.contas[idx]={...ev.contas[idx],descricao:desc,data,valor,pagoPor,participantes};
+    toast('Conta atualizada!');
+  } else {
+    ev.contas.push({id:'c-'+Date.now(),descricao:desc,data,valor,pagoPor,participantes});
+    toast('Conta adicionada!');
+  }
+  saveDivideData(d);
+  divideEventoAtivo=ev;
+  closeModal();
+  divideRenderDetalhe();
+}
+
+// ═══════════════════════════════════════════════
+// FIREBASE / GOOGLE SYNC
+// ═══════════════════════════════════════════════
+let fbApp=null, fbAuth=null, fbDb=null, fbUser=null;
+let realtimeUnsubs=[];
+let syncTimeout=null;
+
+const DEFAULT_FB_CONFIG={
+  apiKey:"AIzaSyDK31rLTwu5xQrnt0D83WnOtFiSwT4mBSE",
+  authDomain:"pierini-assistent-26797.firebaseapp.com",
+  projectId:"pierini-assistent-26797",
+  storageBucket:"pierini-assistent-26797.firebasestorage.app",
+  messagingSenderId:"456162974150",
+  appId:"1:456162974150:web:14f56ff14672a0c9c5bac7"
+};
+
+function getFbConfig(){
+  try{const raw=localStorage.getItem('fbConfig');return raw?JSON.parse(raw):DEFAULT_FB_CONFIG;}
+  catch{return DEFAULT_FB_CONFIG;}
+}
+
+function saveFbConfig(){
+  const raw=e('fbConfigInput')?.value.trim();
+  if(!raw){toast('Cole o JSON de configuração do Firebase');return;}
+  try{
+    const cfg=JSON.parse(raw);
+    if(!cfg.apiKey||!cfg.authDomain||!cfg.projectId){toast('Config inválida — verifique os campos obrigatórios');return;}
+    localStorage.setItem('fbConfig',JSON.stringify(cfg));
+    e('fbConfigStatus').innerHTML='<span style="color:#2e7d32">✅ Configuração salva! Recarregue a página para ativar.</span>';
+    toast('Firebase configurado! Recarregue a página.');
+  } catch{toast('JSON inválido — verifique a formatação');}
+}
+
+function clearAllData(){
+  if(!confirm('Tem certeza? Todos os dados serão apagados permanentemente. A configuração do Firebase não será afetada.')) return;
+  const fbConfig=localStorage.getItem('fbConfig');
+  const theme=localStorage.getItem('theme');
+  localStorage.clear();
+  if(fbConfig) localStorage.setItem('fbConfig',fbConfig);
+  if(theme) localStorage.setItem('theme',theme);
+  const ys=[2026];
+  saveYears(ys);
+  localStorage.setItem(sKey(2026),JSON.stringify(createEmptyYear()));
+  e('clearDataStatus').innerHTML='<span style="color:#2e7d32">✅ Dados apagados com sucesso.</span>';
+  toast('Dados apagados!');
+  renderYearSel();
+  showPage('dashboard');
+  if(fbUser) syncToCloud();
+}
+
+function clearFbConfig(){
+  localStorage.removeItem('fbConfig');
+  e('fbConfigStatus').innerHTML='<span style="color:#9e9e9e">Configuração removida.</span>';
+  toast('Configuração Firebase removida');
+}
+
+async function loadFirebase(){
+  const cfg=getFbConfig();
+  if(!cfg) return;
+  if(fbApp) return; // already loaded
+
+  // Load Firebase SDKs dynamically
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js');
+
+  try{
+    fbApp=firebase.initializeApp(cfg);
+    fbAuth=firebase.auth();
+    fbDb=firebase.firestore();
+    fbAuth.onAuthStateChanged(user=>{
+      fbUser=user;
+      updateSyncUI();
+      if(user){
+        e('login-screen').classList.add('hidden');
+        const sec=e('fb-config-section');
+        if(sec) sec.style.display=user.email==='rodrigorivelino656@gmail.com'?'':'none';
+        syncFromCloud();
+        startRealtimeListeners(user.uid);
+      } else {
+        e('login-screen').classList.remove('hidden');
+        e('login-status').textContent='Faça login para acessar seus dados.';
+        const sec=e('fb-config-section');
+        if(sec) sec.style.display='none';
+        stopRealtimeListeners();
+      }
+    });
+  } catch(err){
+    console.warn('Firebase init error:',err);
+    setSyncStatus('warn','Erro ao inicializar Firebase');
+  }
+}
+
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){res();return;}
+    const s=document.createElement('script');
+    s.src=src;s.onload=res;s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function handleGoogleAuth(){
+  if(!fbAuth){
+    e('login-status').textContent='Aguarde, carregando Firebase...';
+    setTimeout(handleGoogleAuth,1500);
+    return;
+  }
+  if(fbUser){
+    await fbAuth.signOut();
+    fbUser=null;
+    updateSyncUI();
+    toast('Desconectado do Google');
+    e('login-screen').classList.remove('hidden');
+    e('login-status').textContent='Você saiu da conta.';
+    return;
+  }
+  try{
+    e('login-status').textContent='Abrindo login do Google...';
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await fbAuth.signInWithPopup(provider);
+    toast('✅ Conectado com Google!');
+  } catch(err){
+    if(err.code==='auth/popup-blocked') e('login-status').textContent='⚠️ Popup bloqueado — permita popups para este site.';
+    else if(err.code==='auth/operation-not-allowed') e('login-status').textContent='⚠️ Autenticação Google não habilitada no Firebase.';
+    else e('login-status').textContent='Erro: '+err.message;
+  }
+}
+
+function updateSyncUI(){
+  const btn=e('googleBtn');
+  const stat=e('syncStatus');
+  if(!getFbConfig()){
+    setSyncStatus('off','Firebase não configurado');
+    if(btn){btn.innerHTML='<span style="font-size:16px">🔥</span> Configurar Firebase';btn.onclick=()=>showPage('config');}
+    return;
+  }
+  if(fbUser){
+    setSyncStatus('ok','Sincronizado • '+fbUser.displayName);
+    if(btn){
+      btn.innerHTML=`<img src="${fbUser.photoURL}" class="sync-avatar" onerror="this.style.display='none'"> Sair (${fbUser.displayName.split(' ')[0]})`;
+      btn.onclick=handleGoogleAuth;
+    }
+  } else {
+    setSyncStatus('warn','Não conectado');
+    if(btn){
+      btn.innerHTML=`<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E" style="width:18px;height:18px"> Entrar com Google`;
+      btn.onclick=handleGoogleAuth;
+    }
+  }
+  // Show saved config in settings
+  const inp=e('fbConfigInput');
+  if(inp&&!inp.value){
+    const cfg=getFbConfig();
+    if(cfg) inp.value=JSON.stringify(cfg,null,2);
+  }
+}
+
+function setSyncStatus(type,msg){
+  const el=e('syncStatus');
+  if(!el) return;
+  el.innerHTML=`<span class="sync-dot ${type}"></span><span>${msg}</span>`;
+}
+
+async function syncToCloud(){
+  syncTimeout=null; // Clear pending flag before write
+  if(!fbUser||!fbDb) return;
+  try{
+    const ys=getYears();
+    const batch=fbDb.batch();
+    ys.forEach(y=>{
+      const raw=localStorage.getItem(sKey(y));
+      if(raw){
+        const ref=fbDb.collection('users').doc(fbUser.uid).collection('anos').doc(String(y));
+        batch.set(ref,{data:raw,updated:firebase.firestore.FieldValue.serverTimestamp()});
+      }
+    });
+    const divideRaw=localStorage.getItem('divideAe');
+    if(divideRaw){
+      const ref=fbDb.collection('users').doc(fbUser.uid).collection('extras').doc('divideAe');
+      batch.set(ref,{data:divideRaw,updated:firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    const notasRaw=localStorage.getItem('cgastos_notas');
+    if(notasRaw){
+      const ref=fbDb.collection('users').doc(fbUser.uid).collection('extras').doc('notas');
+      batch.set(ref,{data:notasRaw,updated:firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    const metaRef=fbDb.collection('users').doc(fbUser.uid);
+    batch.set(metaRef,{years:ys,updated:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    await batch.commit();
+    setSyncStatus('ok','Sincronizado • '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  } catch(err){
+    setSyncStatus('warn','Erro ao sincronizar');
+    console.warn('Sync error:',err);
+  }
+}
+
+async function syncFromCloud(){
+  if(!fbUser||!fbDb) return;
+  setSyncStatus('warn','Sincronizando...');
+  try{
+    const snap=await fbDb.collection('users').doc(fbUser.uid).collection('anos').get();
+    if(snap.empty){
+      // First time — push local data to cloud
+      await syncToCloud();
+      return;
+    }
+    snap.forEach(doc=>{
+      const y=parseInt(doc.id);
+      const raw=doc.data().data;
+      if(raw) localStorage.setItem(sKey(y),raw);
+    });
+    // Restore DivideAí
+    const divideSnap=await fbDb.collection('users').doc(fbUser.uid).collection('extras').doc('divideAe').get();
+    if(divideSnap.exists&&divideSnap.data().data) localStorage.setItem('divideAe',divideSnap.data().data);
+    // Restore Notas
+    const notasSnap=await fbDb.collection('users').doc(fbUser.uid).collection('extras').doc('notas').get();
+    if(notasSnap.exists&&notasSnap.data().data) localStorage.setItem('cgastos_notas',notasSnap.data().data);
+    // Update years list
+    const metaSnap=await fbDb.collection('users').doc(fbUser.uid).get();
+    if(metaSnap.exists){
+      const ys=metaSnap.data().years||getYears();
+      saveYears(ys);
+    }
+    renderYearSel();
+    // Re-render current page
+    const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
+    if(curActive.includes('dashboard')) renderDashboard();
+    else if(curActive.includes('mes')) renderMes();
+    else if(curActive.includes('investimentos')) renderInvestimentos();
+    else if(curActive.includes('saude')) renderSaude();
+    else if(curActive.includes('divide')) renderDivide();
+    else if(curActive.includes('notas')) renderNotas();
+    setSyncStatus('ok','Sincronizado · '+fbUser.displayName);
+    toast('☁️ Dados sincronizados do Google!');
+  } catch(err){
+    setSyncStatus('warn','Erro ao carregar dados da nuvem');
+    console.warn('Sync from cloud error:',err);
+  }
+}
+
+// Debounced auto-sync: call this after any data save
+function startRealtimeListeners(uid){
+  stopRealtimeListeners();
+
+  // Listener: DivideAí
+  const divRef=fbDb.collection('users').doc(uid).collection('extras').doc('divideAe');
+  const unsub1=divRef.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const raw=snap.data().data;
+    if(!raw) return;
+    const local=localStorage.getItem('divideAe');
+    if(raw===local) return; // sem mudança
+    localStorage.setItem('divideAe',raw);
+    const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
+    if(curActive.includes('divide')) renderDivide();
+    setSyncStatus('ok','Sincronizado • '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  });
+  realtimeUnsubs.push(unsub1);
+
+  // Listener: Notas
+  const notasRef=fbDb.collection('users').doc(uid).collection('extras').doc('notas');
+  const unsubNotas=notasRef.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const raw=snap.data().data;
+    if(!raw) return;
+    if(notasSyncTimeout) return; // alteração local pendente — não sobrescrever
+    const local=localStorage.getItem('cgastos_notas');
+    if(raw===local) return;
+    localStorage.setItem('cgastos_notas',raw);
+    const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
+    if(curActive.includes('notas')) renderNotas();
+    setSyncStatus('ok','Sincronizado • '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  });
+  realtimeUnsubs.push(unsubNotas);
+
+  // Listener: anos financeiros
+  const anosRef=fbDb.collection('users').doc(uid).collection('anos');
+  const unsub2=anosRef.onSnapshot(snap=>{
+    if(syncTimeout) return; // Há alteração local pendente — não sobrescrever
+    let changed=false;
+    snap.forEach(doc=>{
+      const raw=doc.data().data;
+      const local=localStorage.getItem(sKey(parseInt(doc.id)));
+      if(raw&&raw!==local){localStorage.setItem(sKey(parseInt(doc.id)),raw);changed=true;}
+    });
+    if(!changed) return;
+    const curActive=[...document.querySelectorAll('.page.active')].map(x=>x.id.replace('page-',''));
+    if(curActive.includes('dashboard')) renderDashboard();
+    else if(curActive.includes('mes')) renderMes();
+    else if(curActive.includes('investimentos')) renderInvestimentos();
+    else if(curActive.includes('saude')) renderSaude();
+    setSyncStatus('ok','Sincronizado • '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  });
+  realtimeUnsubs.push(unsub2);
+}
+
+function stopRealtimeListeners(){
+  realtimeUnsubs.forEach(u=>u());
+  realtimeUnsubs=[];
+}
+
+function scheduleSync(){
+  if(!fbUser||!fbDb) return;
+  clearTimeout(syncTimeout);
+  syncTimeout=setTimeout(syncToCloud,3000);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function init(){
+  const ys=getYears();
+  if(!ys.includes(2026)){ys.unshift(2026);ys.sort();saveYears(ys);}
+
+  if(localStorage.getItem('theme')==='dark'){
+    document.body.classList.add('dark');
+    const btn=e('btn-dark');
+    if(btn){const ico=btn.querySelector('.snav-ico');const lbl=btn.querySelector('span:last-child');if(ico)ico.textContent='☀️';if(lbl)lbl.textContent='Modo Claro';}
+    const btnMob=e('btn-dark-mob');
+    if(btnMob) btnMob.textContent='☀️';
+  }
+
+  renderYearSel();
+  showPage('dashboard');
+  const ls=e('login-status');
+  if(ls) ls.textContent='Verificando login...';
+  loadFirebase().then(()=>{
+    updateSyncUI();
+    if(!fbAuth&&ls) ls.textContent='Erro ao carregar Firebase. Recarregue a página.';
+  });
+}
+
+// Keyboard shortcut: Esc to close modal/picker
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'){
+    closeModal();
+    const p=e('yearPicker');
+    if(p?.classList.contains('open')){
+      p.classList.remove('open');
+      const ch=e('ypChevron');
+      if(ch) ch.style.transform='';
+    }
+  }
+});
+
+// Fechar year picker ao clicar fora
+document.addEventListener('click',ev=>{
+  const wrap=e('yearPickerWrap');
+  const p=e('yearPicker');
+  if(wrap&&p&&!wrap.contains(ev.target)&&p.classList.contains('open')){
+    p.classList.remove('open');
+    const ch=e('ypChevron');
+    if(ch) ch.style.transform='';
+  }
+});
+
+init();
+
+// PWA — registra service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(()=>console.log('SW registrado'))
+      .catch(err=>console.warn('SW erro:',err));
+  });
+}
+</script>
+</body>
+</html>
