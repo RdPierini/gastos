@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -246,6 +245,7 @@ body.dark .nota-color-dot.sel{border-color:#fff}
 .login-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px}
 .login-sub{font-size:14px;color:var(--text-l);margin-bottom:32px}
 .login-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;background:#fff;font-size:15px;font-weight:600;cursor:pointer;color:var(--text);transition:all .15s}
+.login-btn:hover{border-color:#4285f4;background:#f0f6ff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(66,133,244,.15)}
 .login-btn img{width:22px;height:22px}
 .login-status{font-size:12px;color:var(--text-l);margin-top:16px;min-height:18px}
 body.dark #login-screen{background:#121212}
@@ -789,7 +789,7 @@ body.dark .ys-add{border-color:#333}
 </div>
 
 <!-- NOTAS -->
-<div id="page-notas" class="page">
+<div id="page-notes" class="page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
     <h2 style="font-size:22px;font-weight:800">📝 Anotações</h2>
     <button class="btn btn-g" onclick="notaAbrir()">+ Nova Nota</button>
@@ -1284,7 +1284,7 @@ function renderDashboard(){
     <div class="card purple"><div class="card-label">🛒 Gastos Variáveis</div><div class="card-value">${fmt(s.gv)}</div></div>
     <div class="card blue"><div class="card-label">🏦 Total Investido</div><div class="card-value">${fmt(s.inv)}</div></div>
     <div class="card ${s.saldo>=0?'teal':'red'}"><div class="card-label">💲 Saldo Anual</div><div class="card-value">${fmtSigned(s.saldo)}</div></div>
-    <div class="card indigo"><div class="card-label">📈 Taxa de Poupança</div><div class="card-value">${taxaPoupDash}</div></div>
+    <div class="card indigo"><div class="card-label">📈 Taxa de Poupança</div><div class="card-value">${taxpPoupDash || '—'}</div></div>
     <div class="card gray"><div class="card-label">📊 Média Mensal Saídas</div><div class="card-value">${fmt(mediaSaidas)}</div></div>
   `;
 
@@ -1357,6 +1357,7 @@ function renderTbl(tipo){
   const m=d.meses[mesSel];
   let arr=tipo==='gf'?m.gastosFixos:m.gastosVariaveis;
 
+  // Filtro de Busca
   const busca = (e('mes-search')?.value || '').toLowerCase().trim();
   if (busca) {
     arr = arr.filter(x => 
@@ -1579,7 +1580,7 @@ function renderInvMes(){
     <table>
       <thead><tr><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead>
       <tbody>
-        ${arr.map(x=>`<tr><td>${x.descricao}</td><td class="td-r" style="color:#1565c0;font-weight:600">${fmt(x.valor)}</td><td class="td-center"><button class="btn-icon btn-edit" onclick="openInvMesModal('${x.id}')">✏️</button><button class="btn-icon btn-del" onclick="delInvMes('${x.id}')">🗑️</button></td></tr>`).join('')}
+        ${arr.map(x=>`<tr><td>${x.descricao}</td><td class="td-r" style="color:#1565c0;font-weight:600">${fmt(x.valor)}</td><td class="td-center"><button class="btn-icon btn-edit" onclick="openModal('inv','${x.id}')">✏️</button><button class="btn-icon btn-del" onclick="delEntry('inv','${x.id}')">🗑️</button></td></tr>`).join('')}
         <tr style="background:var(--blue-l)"><td style="font-weight:700">Total</td><td class="td-r" style="font-weight:700;color:var(--blue-d)">${fmt(total)}</td><td></td></tr>
       </tbody>
     </table>`;
@@ -1829,15 +1830,30 @@ function renderSaudeMensal(){
   }
   const isDarkM=document.body.classList.contains('dark');
   const mGreen=isDarkM?'#81c784':'#2e7d32';
+  const mOrange=isDarkM?'#ffb74d':'#e65100';
   const mRed=isDarkM?'#ef9a9a':'#c62828';
   const sCm=scoreM>=90?(isDarkM?'#81c784':'#2e7d32'):scoreM>=80?(isDarkM?'#a5d6a7':'#43a047'):scoreM>=60?'#f9a825':scoreM>=40?'#ef6c00':mRed;
   setChartDarkDefaults();
   if(charts.scoreMes) charts.scoreMes.destroy();
   const ctxSm=e('chart-score-mes')?.getContext('2d');
-  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,isDarkM?'#333':'#f0f0f0'],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{false:true}}}});
+  if(ctxSm) charts.scoreMes=new Chart(ctxSm,{type:'doughnut',data:{labels:['Score',''],datasets:[{data:[scoreM,100-scoreM],backgroundColor:[sCm,isDarkM?'#333':'#f0f0f0'],borderWidth:0,borderRadius:4}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}}}});
   e('score-mes-num').innerHTML=temDados?`<span style="color:${sCm}">${scoreM}<small style="font-size:16px">/100</small></span>`:'—';
   
-  e('saude-mes-metrics').innerHTML=`<div class="hcard"><div>Taxa Poupança: ${taxaPoupM.toFixed(1)}%</div><div>Comprometimento: ${comprM.toFixed(1)}%</div></div>`;
+  const clamp=v=>Math.min(100,v);
+  e('saude-mes-metrics').innerHTML=`
+    <div class="hcard"><div class="hcard-ico">💰</div><div class="hcard-body">
+      <div class="hcard-lbl">Taxa de Poupança</div>
+      <div class="hcard-val" style="color:${taxaPoupM>=20?mGreen:taxaPoupM>=10?mOrange:mRed}">${taxaPoupM.toFixed(1)}%</div>
+      <div class="hcard-bar"><div class="hcard-fill" style="width:${clamp(taxaPoupM/30*100)}%;background:${taxaPoupM>=20?'#4caf50':'#ffa726'}"></div></div>
+      <div class="hcard-note">Ideal: ≥ 20% · Investido: ${fmt(c.inv)}</div>
+    </div></div>
+    <div class="hcard"><div class="hcard-ico">📊</div><div class="hcard-body">
+      <div class="hcard-lbl">Comprometimento</div>
+      <div class="hcard-val" style="color:${comprM<=70?mGreen:comprM<=85?mOrange:mRed}">${comprM.toFixed(1)}%</div>
+      <div class="hcard-bar"><div class="hcard-fill" style="width:${clamp(comprM)}%;background:${comprM<=70?'#4caf50':comprM<=85?'#ffa726':'#ef5350'}"></div></div>
+      <div class="hcard-note">Ideal: ≤ 70% — ${comprM<=70?'dentro ✅':'acima ⚠️'} do limite</div>
+    </div></div>
+  `;
 }
 
 // ═══════════════════════════════════════════════
@@ -1938,33 +1954,85 @@ function notaAbrir(id){
   const cores=isDark?NOTA_CORES_DARK:NOTA_CORES;
   const {notas}=getNotasData();
   const nota=id?notas.find(n=>n.id===id):null;
-  notaCorSel=nota?nota.corIdx||0:0;
-  e('modal-title').textContent=id?'Editar Nota':'Nova Nota';
+  if(nota) notaCorSel=nota.corIdx||0;
+  else notaCorSel=0;
+
+  const catOpts=NOTA_CATS.filter(c=>c.id!=='todas').map(c=>
+    `<option value="${c.id}" ${nota&&nota.categoria===c.id?'selected':''}>${c.label}</option>`
+  ).join('');
+
+  e('modal-title').textContent=id?'✏️ Editar Nota':'📝 Nova Nota';
   e('modal-body').innerHTML=`
-    <div class="frow"><label>Título</label><input id="f-nota-titulo" value="${nota?escHtml(nota.titulo):''}"></div>
-    <div class="frow"><label>Categoria</label><select id="f-nota-cat">${NOTA_CATS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select></div>
-    <div class="frow"><label>Conteúdo</label><textarea id="f-nota-body">${nota?escHtml(nota.conteudo):''}</textarea></div>
+    <div class="frow"><label>Título</label><input id="f-nota-titulo" value="${nota?escHtml(nota.titulo):''}" placeholder="Título da anotação..."></div>
+    <div class="frow"><label>Categoria</label><select id="f-nota-cat">${catOpts}</select></div>
+    <div class="frow">
+      <label>Cor do cartão</label>
+      <div class="nota-modal-colors" id="nota-color-picker">
+        ${cores.map((c,i)=>`<div class="nota-color-dot ${i===notaCorSel?'sel':''}" style="background:${c.hex};outline:${i===notaCorSel?'2px solid #555':'none'}" title="${c.name}" onclick="notaSelCor(${i})"></div>`).join('')}
+      </div>
+    </div>
+    <div class="frow"><label>Conteúdo</label><textarea id="f-nota-body" class="frow-inline-input" style="min-height:200px;resize:vertical;font-family:inherit;line-height:1.65;padding:10px 12px">${nota?escHtml(nota.conteudo):''}</textarea></div>
   `;
-  e('modal-box').dataset.tipo='nota'; e('modal-box').dataset.notaEditId=id||''; e('overlay').classList.add('open');
+  e('modal-box').dataset.tipo='nota';
+  e('modal-box').dataset.notaEditId=id||'';
+  e('overlay').classList.add('open');
+  setTimeout(()=>{const t=e('f-nota-titulo');if(t&&!nota)t.focus();else e('f-nota-body')?.focus();},60);
+}
+
+function notaSelCor(idx){
+  const isDark=document.body.classList.contains('dark');
+  const cores=isDark?NOTA_CORES_DARK:NOTA_CORES;
+  notaCorSel=idx;
+  const picker=e('nota-color-picker'); if(!picker) return;
+  picker.querySelectorAll('.nota-color-dot').forEach((d,i)=>{
+    d.classList.toggle('sel',i===idx);
+    d.style.outline=i===idx?'2px solid #555':'none';
+  });
 }
 
 function salvarNota(){
-  const t=e('f-nota-titulo').value.trim(); const c=e('f-nota-cat').value; const b=e('f-nota-body').value.trim();
-  if(!t&&!b) return;
+  const titulo=(e('f-nota-titulo')?.value||'').trim();
+  const cat=e('f-nota-cat')?.value||'geral';
+  const conteudo=(e('f-nota-body')?.value||'').trim();
+  if(!titulo&&!conteudo){toast('Escreva algo antes de salvar');return;}
   const editId=e('modal-box').dataset.notaEditId;
+  const hoje=new Date().toLocaleDateString('pt-BR');
   const d=getNotasData();
   if(editId){
-    const n=d.notas.find(x=>x.id===editId); if(n){n.titulo=t;n.conteudo=b;n.categoria=c;}
+    const n=d.notas.find(x=>x.id===editId);
+    if(n){n.titulo=titulo;n.conteudo=conteudo;n.categoria=cat;n.corIdx=notaCorSel;n.atualizadoEm=hoje;}
+    toast('Nota atualizada!');
   } else {
-    d.notas.unshift({id:uid(),titulo:t,conteudo:b,categoria:c,corIdx:0,pinned:false});
+    d.notas.unshift({id:'n-'+Date.now(),titulo,conteudo,categoria:cat,corIdx:notaCorSel,pinned:false,criadoEm:hoje,atualizadoEm:hoje});
+    toast('Nota criada!');
   }
-  saveNotasData(d); closeModal(); renderNotas();
+  saveNotasData(d);
+  closeModal();
+  renderNotas();
+}
+
+function notaTogglePin(id){
+  const d=getNotasData(); const n=d.notas.find(x=>x.id===id); if(!n) return;
+  n.pinned=!n.pinned; saveNotasData(d); renderNotas(); toast(n.pinned?'Nota fixada 📌':'Nota desafixada');
 }
 
 function notaExcluir(id){
-  if(confirm('Excluir esta nota?')){
-    const d=getNotasData(); d.notas=d.notas.filter(n=>n.id!==id); saveNotasData(d); renderNotas();
-  }
+  const d=getNotasData(); const n=d.notas.find(x=>x.id===id); if(!n) return;
+  const titulo=n.titulo||'esta nota';
+  e('modal-title').textContent='🗑️ Excluir Nota';
+  e('modal-body').innerHTML=`<div style="text-align:center;padding:10px 0">
+    <div style="font-size:44px;margin-bottom:12px">🗒️</div>
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text)">${escHtml(titulo)}</div>
+    <div style="font-size:13px;color:var(--text-l)">Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.</div>
+  </div>`;
+  e('modal-save-btn').textContent='🗑️ Excluir'; e('modal-save-btn').style.background='#c62828'; e('modal-save-btn').style.color='#fff';
+  e('modal-box').dataset.tipo='del-nota'; e('modal-box').dataset.notaDelId=id; e('overlay').classList.add('open');
+}
+
+function confirmDelNota(){
+  const id=e('modal-box').dataset.notaDelId;
+  const d=getNotasData(); d.notas=d.notas.filter(n=>n.id!==id);
+  saveNotasData(d); closeModal(); renderNotas(); toast('Nota excluída!');
 }
 
 // ═══════════════════════════════════════════════
@@ -2042,8 +2110,8 @@ const DEFAULT_FB_CONFIG={
 };
 
 function getFbConfig(){
-  try{const raw=localStorage.getItem('fbConfig');return raw?JSON.parse(raw):DEFAULT_FB_CONFIG;}
-  catch{return DEFAULT_FB_CONFIG;}
+  try{const raw=localStorage.getItem('fbConfig');return raw?JSON.parse(raw):null;}
+  catch{return null;}
 }
 
 function saveFbConfig(){
@@ -2156,14 +2224,14 @@ function init(){
   
   loadFirebase().then(()=>{
     updateSyncUI();
-    if(!fbAuth&&ls) {
-      ls.textContent='Modo Offline (Sem Firebase).';
+    if(!fbAuth) {
+      if(ls) ls.textContent='Modo Offline (Sem Firebase).';
       e('login-screen').classList.add('hidden'); // Oculta login caso esteja offline/local
     }
   }).catch(err=>{
     console.warn(err);
     if(ls) ls.textContent='Erro de conexão. Executando localmente.';
-    setTimeout(()=>e('login-screen').classList.add('hidden'), 1000);
+    setTimeout(()=>e('login-screen').classList.add('hidden'), 500);
   });
 }
 
@@ -2172,5 +2240,3 @@ init();
 </script>
 </body>
 </html>
-```
-
